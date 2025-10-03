@@ -2,10 +2,15 @@ import mongoose from "mongoose";
 
 const commentSchema = new mongoose.Schema(
   {
-    post: {
+    postOrBlog: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Post",
       required: true,
+    },
+    postType: {
+      type: String,
+      enum: ["Post", "Blog"],
+      required: true,
+      default: "Post",
     },
     author: {
       type: mongoose.Schema.Types.ObjectId,
@@ -86,10 +91,11 @@ commentSchema.virtual("replyCount").get(function () {
 });
 
 // Index'ler
-commentSchema.index({ post: 1, createdAt: -1 });
+commentSchema.index({ postOrBlog: 1, postType: 1, createdAt: -1 });
 commentSchema.index({ author: 1, createdAt: -1 });
 commentSchema.index({ parentComment: 1 });
 commentSchema.index({ isApproved: 1 });
+commentSchema.index({ postType: 1 });
 
 // Middleware to handle likes/dislikes
 commentSchema.methods.toggleLike = function (userId) {

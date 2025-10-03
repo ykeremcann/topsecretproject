@@ -40,8 +40,44 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["patient", "admin"],
+      enum: ["patient", "admin", "doctor"],
       default: "patient",
+    },
+    // Doktor bilgileri (sadece doktorlar için)
+    doctorInfo: {
+      approvalStatus: {
+        type: String,
+        enum: ["pending", "approved", "rejected"],
+        default: "pending",
+      },
+      approvalDate: {
+        type: Date,
+      },
+      approvedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+      rejectionReason: {
+        type: String,
+        maxlength: [500, "Red sebebi en fazla 500 karakter olabilir"],
+      },
+      location: {
+        type: String,
+        maxlength: [100, "Lokasyon en fazla 100 karakter olabilir"],
+      },
+      specialization: {
+        type: String,
+        maxlength: [100, "Uzmanlık alanı en fazla 100 karakter olabilir"],
+      },
+      hospital: {
+        type: String,
+        maxlength: [100, "Hastane adı en fazla 100 karakter olabilir"],
+      },
+      experience: {
+        type: Number,
+        min: [0, "Deneyim yılı 0'dan küçük olamaz"],
+        max: [50, "Deneyim yılı 50'den büyük olamaz"],
+      },
     },
     profilePicture: {
       type: String,
@@ -55,22 +91,6 @@ const userSchema = new mongoose.Schema(
     dateOfBirth: {
       type: Date,
     },
-    medicalConditions: [
-      {
-        disease: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "Disease",
-          required: true,
-        },
-        diagnosisDate: {
-          type: Date,
-        },
-        notes: {
-          type: String,
-          maxlength: [500, "Notlar en fazla 500 karakter olabilir"],
-        },
-      },
-    ],
     isVerified: {
       type: Boolean,
       default: false,
@@ -82,18 +102,6 @@ const userSchema = new mongoose.Schema(
     lastLogin: {
       type: Date,
     },
-    followers: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-      },
-    ],
-    following: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-      },
-    ],
   },
   {
     timestamps: true,
@@ -111,6 +119,26 @@ userSchema.pre("save", async function (next) {
   } catch (error) {
     next(error);
   }
+});
+
+// Role değişikliği middleware
+userSchema.pre("save", async function (next) {
+  // Eğer role doctor olarak değiştiriliyorsa
+  if (this.isModified("role") && this.role === "doctor") {
+    // Doctor info'yu başlat
+    if (!this.doctorInfo) {
+      this.doctorInfo = {};
+    }
+    this.doctorInfo.approvalStatus = "pending";
+  }
+  
+  // Eğer role patient veya admin olarak değiştiriliyorsa
+  if (this.isModified("role") && (this.role === "patient" || this.role === "admin")) {
+    // Doctor info'yu temizle
+    this.doctorInfo = undefined;
+  }
+  
+  next();
 });
 
 // Şifre karşılaştırma metodu
