@@ -1,22 +1,40 @@
 import Comment from "../models/Comment.js";
 import Post from "../models/Post.js";
+import Blog from "../models/Blog.js";
+import { validateComment } from "../middleware/validation.js";
 
 // Yorum oluştur
 export const createComment = async (req, res) => {
   try {
-    const { content, isAnonymous, parentComment } = req.body;
+    const { content, isAnonymous, parentComment, postType } = req.body;
     const { postId } = req.params;
 
-    // Post'un var olduğunu kontrol et
-    const post = await Post.findById(postId);
-    if (!post) {
+    // PostType'ı kontrol et (Post veya Blog)
+    const validPostType = postType || "Post";
+    if (!["Post", "Blog"].includes(validPostType)) {
+      return res.status(400).json({
+        message: "Geçersiz post türü. Post veya Blog olmalı.",
+      });
+    }
+
+    let targetModel, targetDoc;
+    if (validPostType === "Post") {
+      targetModel = Post;
+      targetDoc = await Post.findById(postId);
+    } else {
+      targetModel = Blog;
+      targetDoc = await Blog.findById(postId);
+    }
+
+    if (!targetDoc) {
       return res.status(404).json({
-        message: "Post bulunamadı",
+        message: `${validPostType} bulunamadı`,
       });
     }
 
     const comment = new Comment({
-      post: postId,
+      postOrBlog: postId,
+      postType: validPostType,
       author: req.user._id,
       content,
       isAnonymous: isAnonymous || false,
@@ -50,25 +68,42 @@ export const createComment = async (req, res) => {
   }
 };
 
-// Post'un yorumlarını getir
+// Post veya Blog'un yorumlarını getir
 export const getPostComments = async (req, res) => {
   try {
     const { postId } = req.params;
+    const { postType } = req.query;
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    // Post'un var olduğunu kontrol et
-    const post = await Post.findById(postId);
-    if (!post) {
+    // PostType'ı kontrol et (Post veya Blog)
+    const validPostType = postType || "Post";
+    if (!["Post", "Blog"].includes(validPostType)) {
+      return res.status(400).json({
+        message: "Geçersiz post türü. Post veya Blog olmalı.",
+      });
+    }
+
+    let targetModel, targetDoc;
+    if (validPostType === "Post") {
+      targetModel = Post;
+      targetDoc = await Post.findById(postId);
+    } else {
+      targetModel = Blog;
+      targetDoc = await Blog.findById(postId);
+    }
+
+    if (!targetDoc) {
       return res.status(404).json({
-        message: "Post bulunamadı",
+        message: `${validPostType} bulunamadı`,
       });
     }
 
     // Sadece ana yorumları getir (parentComment null olanlar)
     const comments = await Comment.find({
-      post: postId,
+      postOrBlog: postId,
+      postType: validPostType,
       parentComment: null,
       isApproved: true,
     })
@@ -85,7 +120,8 @@ export const getPostComments = async (req, res) => {
       .limit(limit);
 
     const total = await Comment.countDocuments({
-      post: postId,
+      postOrBlog: postId,
+      postType: validPostType,
       parentComment: null,
       isApproved: true,
     });

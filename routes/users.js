@@ -3,11 +3,10 @@ import {
   getAllUsers,
   getUserById,
   updateUser,
-  toggleFollow,
   searchUsers,
   getUserStats,
-  addMedicalCondition,
-  removeMedicalCondition,
+  checkDoctorApprovalStatus,
+  getApprovedDoctors,
 } from "../controllers/userController.js";
 import { validateUserUpdate } from "../middleware/validation.js";
 import {
@@ -24,26 +23,19 @@ router.get("/", authenticateToken, requireAdmin, getAllUsers);
 // GET /api/users/search - Kullanıcı arama
 router.get("/search", searchUsers);
 
-// GET /api/users/:userId - Kullanıcı detayı
-router.get("/:userId", getUserById);
+// GET /api/users/experts - Onaylanmış doktorları listele (experts)
+router.get("/experts", getApprovedDoctors);
+
+// GET /api/users/doctor/approval-status - Doktor onay durumu kontrol et
+router.get("/doctor/approval-status", authenticateToken, checkDoctorApprovalStatus);
 
 // GET /api/users/:userId/stats - Kullanıcı istatistikleri
 router.get("/:userId/stats", getUserStats);
 
+// GET /api/users/:userId - Kullanıcı detayı
+router.get("/:userId", getUserById);
+
 // PUT /api/users/profile - Profil güncelleme
 router.put("/profile", authenticateToken, validateUserUpdate, updateUser);
-
-// POST /api/users/:userId/follow - Kullanıcı takip et/takibi bırak
-router.post("/:userId/follow", authenticateToken, toggleFollow);
-
-// POST /api/users/medical-conditions - Hastalık ekle
-router.post("/medical-conditions", authenticateToken, addMedicalCondition);
-
-// DELETE /api/users/medical-conditions/:conditionId - Hastalık çıkar
-router.delete(
-  "/medical-conditions/:conditionId",
-  authenticateToken,
-  removeMedicalCondition
-);
 
 export default router;

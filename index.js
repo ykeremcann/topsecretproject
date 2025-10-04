@@ -9,7 +9,8 @@ import userRoutes from "./routes/users.js";
 import postRoutes from "./routes/posts.js";
 import commentRoutes from "./routes/comments.js";
 import adminRoutes from "./routes/admin.js";
-import diseaseRoutes from "./routes/diseases.js";
+import eventRoutes from "./routes/events.js";
+import blogRoutes from "./routes/blogs.js";
 
 dotenv.config();
 
@@ -25,7 +26,12 @@ const limiter = rateLimit({
 
 // Middleware
 app.use(helmet());
-app.use(cors());
+//use cors just for all localhost not just localhost:3000
+app.use(cors({
+  origin: "*",
+  credentials: true,
+}));
+
 app.use(limiter);
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
@@ -36,7 +42,9 @@ app.use("/api/users", userRoutes);
 app.use("/api/posts", postRoutes);
 app.use("/api/comments", commentRoutes);
 app.use("/api/admin", adminRoutes);
-app.use("/api/diseases", diseaseRoutes);
+app.use("/api/events", eventRoutes);
+app.use("/api/blogs", blogRoutes);
+
 
 // Health check endpoint
 app.get("/api/health", (req, res) => {

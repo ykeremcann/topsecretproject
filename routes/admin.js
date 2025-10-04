@@ -8,6 +8,11 @@ import {
   getPendingContent,
   getCategoryStats,
 } from "../controllers/adminController.js";
+import {
+  getPendingDoctors,
+  approveDoctor,
+  rejectDoctor,
+} from "../controllers/userController.js";
 import { authenticateToken, requireAdmin } from "../middleware/auth.js";
 
 const router = express.Router();
@@ -112,5 +117,15 @@ router.get("/reported", getReportedContent);
 
 // GET /api/admin/pending - Bekleyen içerikleri getir
 router.get("/pending", getPendingContent);
+
+// Doktor onay sistemi route'ları
+// GET /api/admin/doctors/pending - Onay bekleyen doktorları listele
+router.get("/doctors/pending", getPendingDoctors);
+
+// PUT /api/admin/doctors/:doctorId/approve - Doktor onayla
+router.put("/doctors/:doctorId/approve", approveDoctor);
+
+// PUT /api/admin/doctors/:doctorId/reject - Doktor reddet
+router.put("/doctors/:doctorId/reject", rejectDoctor);
 
 export default router;

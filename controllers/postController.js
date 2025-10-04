@@ -16,6 +16,17 @@ export const createPost = async (req, res) => {
       treatments,
     } = req.body;
 
+    // Eğer doktor ise onay durumunu kontrol et
+    if (req.user.role === "doctor") {
+      const user = await User.findById(req.user._id).select("doctorInfo");
+      if (!user.doctorInfo || user.doctorInfo.approvalStatus !== "approved") {
+        return res.status(403).json({
+          message: "Post oluşturmak için doktor onayınız gerekli",
+          approvalStatus: user.doctorInfo?.approvalStatus || "pending",
+        });
+      }
+    }
+
     const post = new Post({
       author: req.user._id,
       title,
@@ -77,10 +88,36 @@ export const getAllPosts = async (req, res) => {
       .skip(skip)
       .limit(limit);
 
+    // Kullanıcı token'dan ID'sini al
+    const userId = req.user ? req.user._id : null;
+
+    // Her post için isLiked ve isDisliked alanlarını ekle
+    const postsWithLikes = posts.map(post => {
+      const postObj = post.toObject();
+      postObj.isLiked = userId ? post.likes.includes(userId) : false;
+      postObj.isDisliked = userId ? post.dislikes.includes(userId) : false;
+      return postObj;
+    });
+
     const total = await Post.countDocuments(query);
 
+    // Trend kategorileri hesapla
+    const trendCategories = await Post.aggregate([
+      { $match: { isApproved: true } },
+      { $group: { _id: "$category", count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 10 },
+      {
+        $project: {
+          name: "$_id",
+          count: 1,
+          _id: 0
+        }
+      }
+    ]);
+
     res.json({
-      posts,
+      posts: postsWithLikes,
       pagination: {
         currentPage: page,
         totalPages: Math.ceil(total / limit),
@@ -88,6 +125,7 @@ export const getAllPosts = async (req, res) => {
         hasNext: page * limit < total,
         hasPrev: page > 1,
       },
+      trendCategorys: trendCategories,
     });
   } catch (error) {
     console.error("Post'ları getirme hatası:", error);
@@ -102,8 +140,6 @@ export const getPostById = async (req, res) => {
   try {
     const post = await Post.findById(req.params.postId)
       .populate("author", "username firstName lastName profilePicture")
-      .populate("likes", "username firstName lastName profilePicture")
-      .populate("dislikes", "username firstName lastName profilePicture");
 
     if (!post) {
       return res.status(404).json({
@@ -114,7 +150,82 @@ export const getPostById = async (req, res) => {
     // Görüntülenme sayısını artır
     await post.incrementViews();
 
-    res.json({ post });
+    // Kullanıcı token'dan ID'sini al
+    const userId = req.user ? req.user._id : null;
+
+    // Post objesine isLiked ve isDisliked ekle
+    const postObj = post.toObject();
+    postObj.isLiked = userId ? post.likes.includes(userId) : false;
+    postObj.isDisliked = userId ? post.dislikes.includes(userId) : false;
+
+    // En yeni 3 post'u getir (newPosts)
+    const newPosts = await Post.find({ isApproved: true, _id: { $ne: post._id } })
+      .populate("author", "username firstName lastName profilePicture")
+      .sort({ createdAt: -1 })
+      .limit(3);
+
+    // newPosts için isLiked ve isDisliked ekle
+    const newPostsWithLikes = newPosts.map(newPost => {
+      const newPostObj = newPost.toObject();
+      newPostObj.isLiked = userId ? newPost.likes.includes(userId) : false;
+      newPostObj.isDisliked = userId ? newPost.dislikes.includes(userId) : false;
+      return newPostObj;
+    });
+
+    // Benzer post'ları getir (kategori ve tag'e göre)
+    const similarPosts = await Post.aggregate([
+      {
+        $match: {
+          isApproved: true,
+          _id: { $ne: post._id },
+          $or: [
+            { category: post.category },
+            { tags: { $in: post.tags } }
+          ]
+        }
+      },
+      {
+        $addFields: {
+          similarityScore: {
+            $add: [
+              { $cond: [{ $eq: ["$category", post.category] }, 1, 0] },
+              { $size: { $setIntersection: ["$tags", post.tags] } }
+            ]
+          }
+        }
+      },
+      { $sort: { similarityScore: -1, createdAt: -1 } },
+      { $limit: 3 },
+      {
+        $lookup: {
+          from: "users",
+          localField: "author",
+          foreignField: "_id",
+          as: "author",
+          pipeline: [
+            { $project: { username: 1, firstName: 1, lastName: 1, profilePicture: 1 } }
+          ]
+        }
+      },
+      { $unwind: "$author" }
+    ]);
+
+    // similarPosts için isLiked ve isDisliked ekle
+    const similarPostsWithLikes = similarPosts.map(similarPost => {
+      const similarPostObj = { ...similarPost };
+      // ObjectId'leri string'e çevirip kontrol et
+      const likesStringIds = similarPost.likes.map(id => id.toString());
+      const dislikesStringIds = similarPost.dislikes.map(id => id.toString());
+      similarPostObj.isLiked = userId ? likesStringIds.includes(userId.toString()) : false;
+      similarPostObj.isDisliked = userId ? dislikesStringIds.includes(userId.toString()) : false;
+      return similarPostObj;
+    });
+
+    res.json({
+      post: postObj,
+      newPosts: newPostsWithLikes,
+      similarPosts: similarPostsWithLikes
+    });
   } catch (error) {
     console.error("Post getirme hatası:", error);
     res.status(500).json({
