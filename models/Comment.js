@@ -77,17 +77,17 @@ const commentSchema = new mongoose.Schema(
 
 // Virtual field for like count
 commentSchema.virtual("likeCount").get(function () {
-  return this.likes.length;
+  return this.likes ? this.likes.length : 0;
 });
 
 // Virtual field for dislike count
 commentSchema.virtual("dislikeCount").get(function () {
-  return this.dislikes.length;
+  return this.dislikes ? this.dislikes.length : 0;
 });
 
 // Virtual field for reply count
 commentSchema.virtual("replyCount").get(function () {
-  return this.replies.length;
+  return this.replies ? this.replies.length : 0;
 });
 
 // Index'ler

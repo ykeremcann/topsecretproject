@@ -1,4 +1,8 @@
 import User from "../models/User.js";
+import Post from "../models/Post.js";
+import Blog from "../models/Blog.js";
+import Comment from "../models/Comment.js";
+import Event from "../models/Event.js";
 import { generateAccessToken, generateRefreshToken } from "../utils/jwt.js";
 import jwt from "jsonwebtoken";
 
@@ -225,22 +229,137 @@ export const refreshToken = async (req, res) => {
 // Kullanıcı profili getirme
 export const getProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id)
-      .select("-password")
-      .populate("followers", "username firstName lastName profilePicture")
-      .populate("following", "username firstName lastName profilePicture")
-      .populate(
-        "medicalConditions.disease",
-        "name description category severity"
-      );
+    const user = await User.findById(req.user._id).select("-password");
 
-    res.json({
+    if (!user) {
+      return res.status(404).json({
+        message: "Kullanıcı bulunamadı",
+      });
+    }
+
+    // Kullanıcının paylaştığı post'lar
+    const posts = await Post.find({ author: req.user._id, isApproved: true })
+      .select("title content category createdAt likes dislikes views images isAnonymous")
+      .populate("author", "username firstName lastName profilePicture role")
+      .sort({ createdAt: -1 })
+      .limit(3);
+
+    const totalPosts = await Post.countDocuments({ author: req.user._id, isApproved: true });
+
+    // Kullanıcının yaptığı comment'ler
+    const comments = await Comment.find({ author: req.user._id })
+      .select("content postType postOrBlog createdAt likes isAnonymous")
+      .populate("author", "username firstName lastName profilePicture role")
+      .sort({ createdAt: -1 })
+      .limit(3);
+
+    const totalComments = await Comment.countDocuments({ author: req.user._id });
+
+    // Kullanıcının like'ladığı post'lar
+    const likedPosts = await Post.find({ likes: req.user._id, isApproved: true })
+      .select("title content category createdAt author images")
+      .populate("author", "username firstName lastName profilePicture role")
+      .sort({ createdAt: -1 })
+      .limit(3);
+
+    const totalLikedPosts = await Post.countDocuments({ likes: req.user._id, isApproved: true });
+
+    // Response objesi
+    const responseData = {
       user,
+      stats: {
+        totalPosts,
+        totalComments,
+        totalLikedPosts,
+      },
+      recentPosts: posts,
+      recentComments: comments,
+      recentLikedPosts: likedPosts,
+    };
+
+    // Eğer doktor veya admin ise blog bilgilerini ekle
+    if (user.role === "doctor" || user.role === "admin") {
+      const blogs = await Blog.find({ author: req.user._id })
+        .select("title excerpt content category isPublished isFeatured createdAt likes dislikes views featuredImage images readingTime")
+        .populate("author", "username firstName lastName profilePicture role doctorInfo")
+        .sort({ createdAt: -1 })
+        .limit(3);
+
+      const totalBlogs = await Blog.countDocuments({ author: req.user._id });
+      const publishedBlogs = await Blog.countDocuments({ 
+        author: req.user._id, 
+        isPublished: true 
+      });
+
+      responseData.stats.totalBlogs = totalBlogs;
+      responseData.stats.publishedBlogs = publishedBlogs;
+      responseData.recentBlogs = blogs;
+    }
+
+    // Event bilgilerini ekle (tüm kullanıcılar için)
+    const createdEvents = await Event.find({ authorId: req.user._id })
+      .select("title description category date endDate location status currentParticipants maxParticipants image instructor organizer isOnline price")
+      .populate("authorId", "username firstName lastName profilePicture role")
+      .sort({ date: -1 })
+      .limit(3);
+
+    const totalCreatedEvents = await Event.countDocuments({ authorId: req.user._id });
+
+    // Katıldığı etkinlikler (en güncel 3 tanesi)
+    const participatingEvents = await Event.find({ 
+      "participants.user": req.user._id,
+      "participants.status": "confirmed"
+    })
+      .select("title description category date endDate location status currentParticipants maxParticipants image instructor organizer isOnline price")
+      .populate("authorId", "username firstName lastName profilePicture role")
+      .sort({ date: -1 }) // Tarihe göre azalan sıralama (en yeni etkinlikler)
+      .limit(3);
+
+    const totalParticipatingEvents = await Event.countDocuments({ 
+      "participants.user": req.user._id,
+      "participants.status": "confirmed"
     });
+
+    responseData.stats.totalCreatedEvents = totalCreatedEvents;
+    responseData.stats.totalParticipatingEvents = totalParticipatingEvents;
+    responseData.createdEvents = createdEvents;
+    responseData.participatingEvents = participatingEvents; // Katıldığı en güncel 3 etkinlik
+
+    res.json(responseData);
   } catch (error) {
     console.error("Profil getirme hatası:", error);
     res.status(500).json({
       message: "Profil bilgileri alınırken hata oluştu",
+    });
+  }
+};
+
+// Kullanıcı profili güncelleme
+export const updateUser = async (req, res) => {
+  try {
+    const { firstName, lastName, bio, dateOfBirth, profilePicture } = req.body;
+
+    const updateData = {};
+    if (firstName) updateData.firstName = firstName;
+    if (lastName) updateData.lastName = lastName;
+    if (bio !== undefined) updateData.bio = bio;
+    if (dateOfBirth) updateData.dateOfBirth = dateOfBirth;
+    if (profilePicture !== undefined) updateData.profilePicture = profilePicture;
+
+    const user = await User.findByIdAndUpdate(req.user._id, updateData, {
+      new: true,
+      runValidators: true,
+    })
+      .select("-password");
+
+    res.json({
+      message: "Profil başarıyla güncellendi",
+      user,
+    });
+  } catch (error) {
+    console.error("Profil güncelleme hatası:", error);
+    res.status(500).json({
+      message: "Profil güncellenirken hata oluştu",
     });
   }
 };

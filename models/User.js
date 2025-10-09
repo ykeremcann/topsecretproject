@@ -82,6 +82,13 @@ const userSchema = new mongoose.Schema(
     profilePicture: {
       type: String,
       default: "",
+      validate: {
+        validator: function (v) {
+          // Boş string veya hem relative path (/uploads/...) hem de full URL (http://... veya https://...) kabul et
+          return !v || /^(https?:\/\/.+|\/uploads\/.+)/.test(v);
+        },
+        message: "Geçerli bir resim URL veya path girin",
+      },
     },
     bio: {
       type: String,
@@ -158,9 +165,7 @@ userSchema.virtual("fullName").get(function () {
   return `${this.firstName} ${this.lastName}`;
 });
 
-// Index'ler
-userSchema.index({ email: 1 });
-userSchema.index({ username: 1 });
+// Index'ler (email ve username zaten unique: true ile otomatik index'leniyor)
 userSchema.index({ role: 1 });
 
 const User = mongoose.model("User", userSchema);

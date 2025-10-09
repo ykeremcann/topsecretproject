@@ -100,6 +100,21 @@ export const validatePost = [
     .isLength({ min: 1, max: 50 })
     .withMessage("Etiket 1-50 karakter arasında olmalı"),
 
+  body("images")
+    .optional()
+    .isArray({ max: 10 })
+    .withMessage("En fazla 10 resim ekleyebilirsiniz"),
+
+  body("images.*")
+    .optional()
+    .custom((value) => {
+      // Hem relative path (/uploads/...) hem de full URL (http://... veya https://...) kabul et
+      if (/^(https?:\/\/.+|\/uploads\/.+)/.test(value)) {
+        return true;
+      }
+      throw new Error("Geçerli bir resim URL'si veya path girin");
+    }),
+
   body("isAnonymous")
     .optional()
     .isBoolean()
@@ -135,20 +150,15 @@ export const validateUserUpdate = [
     .isLength({ max: 500 })
     .withMessage("Biyografi en fazla 500 karakter olabilir"),
 
-  body("medicalConditions")
+  body("profilePicture")
     .optional()
-    .isArray({ max: 20 })
-    .withMessage("En fazla 20 hastalık ekleyebilirsiniz"),
-
-  body("medicalConditions.*.disease")
-    .optional()
-    .isMongoId()
-    .withMessage("Geçerli bir hastalık ID'si girin"),
-
-  body("medicalConditions.*.notes")
-    .optional()
-    .isLength({ max: 500 })
-    .withMessage("Notlar en fazla 500 karakter olabilir"),
+    .custom((value) => {
+      // Hem relative path (/uploads/...) hem de full URL (http://... veya https://...) kabul et
+      if (!value || /^(https?:\/\/.+|\/uploads\/.+)/.test(value)) {
+        return true;
+      }
+      throw new Error("Geçerli bir profil resmi URL'si veya path girin");
+    }),
 
   handleValidationErrors,
 ];
@@ -339,8 +349,13 @@ export const validateEvent = [
 
   body("image")
     .optional()
-    .isURL()
-    .withMessage("Geçerli bir resim URL'si girin"),
+    .custom((value) => {
+      // Hem relative path (/uploads/...) hem de full URL (http://... veya https://...) kabul et
+      if (!value || /^(https?:\/\/.+|\/uploads\/.+)/.test(value)) {
+        return true;
+      }
+      throw new Error("Geçerli bir resim URL'si veya path girin");
+    }),
 
   handleValidationErrors,
 ];
@@ -394,13 +409,23 @@ export const validateBlog = [
 
   body("images.*")
     .optional()
-    .isURL()
-    .withMessage("Geçerli bir resim URL'si girin"),
+    .custom((value) => {
+      // Hem relative path (/uploads/...) hem de full URL (http://... veya https://...) kabul et
+      if (/^(https?:\/\/.+|\/uploads\/.+)/.test(value)) {
+        return true;
+      }
+      throw new Error("Geçerli bir resim URL'si veya path girin");
+    }),
 
   body("featuredImage")
     .optional()
-    .isURL()
-    .withMessage("Geçerli bir öne çıkan resim URL'si girin"),
+    .custom((value) => {
+      // Hem relative path (/uploads/...) hem de full URL (http://... veya https://...) kabul et
+      if (!value || /^(https?:\/\/.+|\/uploads\/.+)/.test(value)) {
+        return true;
+      }
+      throw new Error("Geçerli bir öne çıkan resim URL'si veya path girin");
+    }),
 
   body("isPublished")
     .optional()

@@ -109,6 +109,13 @@ const eventSchema = new mongoose.Schema(
     image: {
       type: String,
       default: "",
+      validate: {
+        validator: function (v) {
+          // Boş string veya hem relative path (/uploads/...) hem de full URL (http://... veya https://...) kabul et
+          return !v || /^(https?:\/\/.+|\/uploads\/.+)/.test(v);
+        },
+        message: "Geçerli bir resim URL veya path girin",
+      },
     },
     status: {
       type: String,
@@ -227,7 +234,7 @@ eventSchema.methods.isUserRegistered = function(userId) {
 
 // Method to add participant
 eventSchema.methods.addParticipant = function(userId, notes = "") {
-  if (this.isFull()) {
+  if (this.isFull) {
     throw new Error("Etkinlik kontenjanı dolu");
   }
   

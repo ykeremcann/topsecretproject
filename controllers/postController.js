@@ -96,6 +96,18 @@ export const getAllPosts = async (req, res) => {
       const postObj = post.toObject();
       postObj.isLiked = userId ? post.likes.includes(userId) : false;
       postObj.isDisliked = userId ? post.dislikes.includes(userId) : false;
+      
+      // Eğer post anonim ise author bilgilerini gizle
+      if (postObj.isAnonymous) {
+        postObj.author = {
+          _id: null,
+          username: "Anonim Kullanıcı",
+          firstName: "Anonim",
+          lastName: "Kullanıcı",
+          profilePicture: null
+        };
+      }
+      
       return postObj;
     });
 
@@ -157,6 +169,17 @@ export const getPostById = async (req, res) => {
     const postObj = post.toObject();
     postObj.isLiked = userId ? post.likes.includes(userId) : false;
     postObj.isDisliked = userId ? post.dislikes.includes(userId) : false;
+    
+    // Eğer post anonim ise author bilgilerini gizle
+    if (postObj.isAnonymous) {
+      postObj.author = {
+        _id: null,
+        username: "Anonim Kullanıcı",
+        firstName: "Anonim",
+        lastName: "Kullanıcı",
+        profilePicture: null
+      };
+    }
 
     // En yeni 3 post'u getir (newPosts)
     const newPosts = await Post.find({ isApproved: true, _id: { $ne: post._id } })
@@ -169,6 +192,18 @@ export const getPostById = async (req, res) => {
       const newPostObj = newPost.toObject();
       newPostObj.isLiked = userId ? newPost.likes.includes(userId) : false;
       newPostObj.isDisliked = userId ? newPost.dislikes.includes(userId) : false;
+      
+      // Eğer post anonim ise author bilgilerini gizle
+      if (newPostObj.isAnonymous) {
+        newPostObj.author = {
+          _id: null,
+          username: "Anonim Kullanıcı",
+          firstName: "Anonim",
+          lastName: "Kullanıcı",
+          profilePicture: null
+        };
+      }
+      
       return newPostObj;
     });
 
@@ -218,6 +253,18 @@ export const getPostById = async (req, res) => {
       const dislikesStringIds = similarPost.dislikes.map(id => id.toString());
       similarPostObj.isLiked = userId ? likesStringIds.includes(userId.toString()) : false;
       similarPostObj.isDisliked = userId ? dislikesStringIds.includes(userId.toString()) : false;
+      
+      // Eğer post anonim ise author bilgilerini gizle
+      if (similarPostObj.isAnonymous) {
+        similarPostObj.author = {
+          _id: null,
+          username: "Anonim Kullanıcı",
+          firstName: "Anonim",
+          lastName: "Kullanıcı",
+          profilePicture: null
+        };
+      }
+      
       return similarPostObj;
     });
 
@@ -432,8 +479,26 @@ export const getUserPosts = async (req, res) => {
       isApproved: true,
     });
 
+    // Post'ları map'leyerek anonim olanları gizle
+    const postsWithAnonymous = posts.map(post => {
+      const postObj = post.toObject();
+      
+      // Eğer post anonim ise author bilgilerini gizle
+      if (postObj.isAnonymous) {
+        postObj.author = {
+          _id: null,
+          username: "Anonim Kullanıcı",
+          firstName: "Anonim",
+          lastName: "Kullanıcı",
+          profilePicture: null
+        };
+      }
+      
+      return postObj;
+    });
+
     res.json({
-      posts,
+      posts: postsWithAnonymous,
       pagination: {
         currentPage: page,
         totalPages: Math.ceil(total / limit),
