@@ -125,18 +125,23 @@ export const getAllEvents = async (req, res) => {
       .skip(skip)
       .limit(limit);
 
-      console.log(events);
-    // Kullanıcı giriş yapmışsa kayıt durumunu kontrol et
-    if (req.user) {
-      for (let event of events) {
-        event.isRegistered = event.isUserRegistered(req.user._id);
+    // Kullanıcı giriş yapmışsa kayıt durumunu kontrol et ve response'a ekle
+    const eventsWithRegistration = events.map(event => {
+      const eventObj = event.toObject();
+      if (req.user) {
+        eventObj.isRegistered = event.isUserRegistered(req.user._id);
+        eventObj.isOwner = event.authorId._id.toString() === req.user._id.toString();
+      } else {
+        eventObj.isRegistered = false;
+        eventObj.isOwner = false;
       }
-    }
+      return eventObj;
+    });
 
     const total = await Event.countDocuments(query);
 
     res.json({
-      events,
+      events: eventsWithRegistration,
       pagination: {
         currentPage: page,
         totalPages: Math.ceil(total / limit),
@@ -196,17 +201,23 @@ export const searchEvents = async (req, res) => {
       .skip(skip)
       .limit(limit);
 
-    // Kullanıcı giriş yapmışsa kayıt durumunu kontrol et
-    if (req.user) {
-      for (let event of events) {
-        event.isRegistered = event.isUserRegistered(req.user._id);
+    // Kullanıcı giriş yapmışsa kayıt durumunu kontrol et ve response'a ekle
+    const eventsWithRegistration = events.map(event => {
+      const eventObj = event.toObject();
+      if (req.user) {
+        eventObj.isRegistered = event.isUserRegistered(req.user._id);
+        eventObj.isOwner = event.authorId._id.toString() === req.user._id.toString();
+      } else {
+        eventObj.isRegistered = false;
+        eventObj.isOwner = false;
       }
-    }
+      return eventObj;
+    });
 
     const total = await Event.countDocuments(query);
 
     res.json({
-      events,
+      events: eventsWithRegistration,
       pagination: {
         currentPage: page,
         totalPages: Math.ceil(total / limit),
@@ -305,6 +316,7 @@ export const getUserEvents = async (req, res) => {
       }
 
       events = await Event.find(query)
+        .populate("authorId", "username firstName lastName profilePicture")
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit);
@@ -315,6 +327,8 @@ export const getUserEvents = async (req, res) => {
         events: events.map(event => ({
           ...event.toObject(),
           type: "created",
+          isRegistered: event.isUserRegistered(req.user._id),
+          isOwner: true, // Kullanıcının oluşturduğu event'ler
         })),
         pagination: {
           currentPage: page,
@@ -346,6 +360,8 @@ export const getUserEvents = async (req, res) => {
           ...event.toObject(),
           type: "registered",
           registrationDate: participant.registrationDate,
+          isRegistered: true, // Kullanıcının katıldığı event'ler
+          isOwner: event.authorId._id.toString() === req.user._id.toString(),
         };
       });
 
@@ -383,16 +399,21 @@ export const getEventById = async (req, res) => {
       });
     }
 
+    // Event objesini hazırla
+    const eventObj = event.toObject();
+
     // Kullanıcı giriş yapmışsa kayıt durumunu kontrol et
     if (req.user) {
-      event.isRegistered = event.isUserRegistered(req.user._id);
+      eventObj.isRegistered = event.isUserRegistered(req.user._id);
+      eventObj.isOwner = event.authorId._id.toString() === req.user._id.toString();
+      eventObj.canRegister = !event.isFull && event.status === "active" && !event.isUserRegistered(req.user._id);
+    } else {
+      eventObj.isRegistered = false;
+      eventObj.isOwner = false;
+      eventObj.canRegister = !event.isFull && event.status === "active";
     }
 
-    // Kayıt yapabilir mi kontrol et
-    event.canRegister = !event.isFull && event.status === "active" && 
-      (!req.user || !event.isUserRegistered(req.user._id));
-
-    res.json({ event });
+    res.json({ event: eventObj });
   } catch (error) {
     console.error("Etkinlik getirme hatası:", error);
     res.status(500).json({
@@ -531,7 +552,7 @@ export const registerForEvent = async (req, res) => {
       });
     }
 
-    if (event.isFull()) {
+    if (event.isFull) {
       return res.status(409).json({
         message: "Etkinlik kontenjanı dolu",
       });

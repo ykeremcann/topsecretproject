@@ -109,6 +109,13 @@ const eventSchema = new mongoose.Schema(
     image: {
       type: String,
       default: "",
+      validate: {
+        validator: function (v) {
+          // Boş string veya hem relative path (/uploads/...) hem de full URL (http://... veya https://...) kabul et
+          return !v || /^(https?:\/\/.+|\/uploads\/.+)/.test(v);
+        },
+        message: "Geçerli bir resim URL veya path girin",
+      },
     },
     status: {
       type: String,
@@ -176,6 +183,11 @@ const eventSchema = new mongoose.Schema(
         default: "pending",
       },
     }],
+    slug: {
+      type: String,
+      unique: true,
+      lowercase: true,
+    },
   },
   {
     timestamps: true,
@@ -227,7 +239,7 @@ eventSchema.methods.isUserRegistered = function(userId) {
 
 // Method to add participant
 eventSchema.methods.addParticipant = function(userId, notes = "") {
-  if (this.isFull()) {
+  if (this.isFull) {
     throw new Error("Etkinlik kontenjanı dolu");
   }
   
@@ -322,6 +334,34 @@ eventSchema.pre(["findOneAndUpdate", "updateOne", "updateMany"], function(next) 
   }
 });
 
+// Slug oluşturma middleware
+eventSchema.pre('save', async function (next) {
+  if (this.isModified('title') && !this.slug) {
+    let baseSlug = this.title
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .trim('-');
+
+    // Aynı slug varsa sonuna sayı ekle
+    let slug = baseSlug;
+    let counter = 1;
+    
+    while (true) {
+      const existingEvent = await mongoose.model('Event').findOne({ slug: slug });
+      if (!existingEvent || existingEvent._id.toString() === this._id.toString()) {
+        break;
+      }
+      slug = `${baseSlug}-${counter}`;
+      counter++;
+    }
+    
+    this.slug = slug;
+  }
+  next();
+});
+
 // Index'ler
 eventSchema.index({ title: "text", description: "text" });
 eventSchema.index({ category: 1 });
@@ -331,6 +371,7 @@ eventSchema.index({ authorId: 1 });
 eventSchema.index({ organizerType: 1 });
 eventSchema.index({ isOnline: 1 });
 eventSchema.index({ "participants.user": 1 });
+eventSchema.index({ slug: 1 }); // slug index'i eklendi
 
 const Event = mongoose.model("Event", eventSchema);
 

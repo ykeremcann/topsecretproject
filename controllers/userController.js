@@ -188,6 +188,36 @@ export const updateUser = async (req, res) => {
   }
 };
 
+// Kullanıcı güncelleme
+export const updateUserById = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { firstName, lastName, bio, dateOfBirth, profilePicture } = req.body;
+
+    const updateData = {};
+    if (firstName) updateData.firstName = firstName;
+    if (lastName) updateData.lastName = lastName;
+    if (bio !== undefined) updateData.bio = bio;
+    if (dateOfBirth) updateData.dateOfBirth = dateOfBirth;
+    if (profilePicture) updateData.profilePicture = profilePicture;
+
+    const user = await User.findByIdAndUpdate(userId, updateData, {
+      new: true,
+      runValidators: true,
+    })
+      .select("-password");
+
+    res.json({
+      message: "Profil başarıyla güncellendi",
+      user,
+    });
+  } catch (error) {
+    console.error("Kullanıcı güncelleme hatası:", error);
+    res.status(500).json({
+      message: "Profil güncellenirken hata oluştu",
+    });
+  }
+}
 
 
 // Kullanıcı arama

@@ -31,6 +31,7 @@ const postSchema = new mongoose.Schema(
         "digestive",
         "neurological",
         "autoimmune",
+        "success-story",
         "other",
       ],
     },
@@ -45,9 +46,10 @@ const postSchema = new mongoose.Schema(
         type: String,
         validate: {
           validator: function (v) {
-            return /^https?:\/\/.+/.test(v);
+            // Hem relative path (/uploads/...) hem de full URL (http://... veya https://...) kabul et
+            return /^(https?:\/\/.+|\/uploads\/.+)/.test(v);
           },
-          message: "Geçerli bir URL girin",
+          message: "Geçerli bir resim URL veya path girin",
         },
       },
     ],
@@ -103,6 +105,11 @@ const postSchema = new mongoose.Schema(
         maxlength: [200, "Tedavi adı en fazla 200 karakter olabilir"],
       },
     ],
+    slug: {
+      type: String,
+      unique: true,
+      lowercase: true,
+    },
   },
   {
     timestamps: true,
@@ -111,12 +118,12 @@ const postSchema = new mongoose.Schema(
 
 // Virtual field for like count
 postSchema.virtual("likeCount").get(function () {
-  return this.likes.length;
+  return this.likes ? this.likes.length : 0;
 });
 
 // Virtual field for dislike count
 postSchema.virtual("dislikeCount").get(function () {
-  return this.dislikes.length;
+  return this.dislikes ? this.dislikes.length : 0;
 });
 
 // Virtual field for comment count (will be populated from Comment model)
@@ -127,12 +134,41 @@ postSchema.virtual("commentCount", {
   count: true,
 });
 
+// Slug oluşturma middleware
+postSchema.pre('save', async function (next) {
+  if (this.isModified('title') && !this.slug) {
+    let baseSlug = this.title
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .trim('-');
+
+    // Aynı slug varsa sonuna sayı ekle
+    let slug = baseSlug;
+    let counter = 1;
+    
+    while (true) {
+      const existingPost = await mongoose.model('Post').findOne({ slug: slug });
+      if (!existingPost || existingPost._id.toString() === this._id.toString()) {
+        break;
+      }
+      slug = `${baseSlug}-${counter}`;
+      counter++;
+    }
+    
+    this.slug = slug;
+  }
+  next();
+});
+
 // Index'ler
 postSchema.index({ author: 1, createdAt: -1 });
 postSchema.index({ category: 1, createdAt: -1 });
 postSchema.index({ tags: 1 });
 postSchema.index({ isApproved: 1, createdAt: -1 });
 postSchema.index({ title: "text", content: "text" });
+postSchema.index({ slug: 1 }); // slug index'i eklendi
 
 // Middleware to update view count
 postSchema.methods.incrementViews = function () {

@@ -2,17 +2,26 @@ import User from "../models/User.js";
 import Post from "../models/Post.js";
 import Comment from "../models/Comment.js";
 import Disease from "../models/Disease.js";
+import Blog from "../models/Blog.js";
+import Event from "../models/Event.js";
 
-// Dashboard istatistikleri
+// Kapsamlı Dashboard İstatistikleri
 export const getDashboardStats = async (req, res) => {
   try {
+    // Genel sayılar
     const totalUsers = await User.countDocuments({});
     const totalPosts = await Post.countDocuments({});
+    const totalBlogs = await Blog.countDocuments({});
+    const totalEvents = await Event.countDocuments({});
     const totalComments = await Comment.countDocuments({});
     const totalDiseases = await Disease.countDocuments({ isActive: true });
-    const pendingPosts = await Post.countDocuments({ isApproved: false });
-    const reportedPosts = await Post.countDocuments({ isReported: true });
-    const reportedComments = await Comment.countDocuments({ isReported: true });
+
+    // Kullanıcı türleri
+    const activeUsers = await User.countDocuments({ isActive: true });
+    const verifiedUsers = await User.countDocuments({ isVerified: true });
+    const doctors = await User.countDocuments({ role: "doctor" });
+    const patients = await User.countDocuments({ role: "patient" });
+    const admins = await User.countDocuments({ role: "admin" });
 
     // Son 7 günün istatistikleri
     const sevenDaysAgo = new Date();
@@ -21,33 +30,333 @@ export const getDashboardStats = async (req, res) => {
     const newUsers = await User.countDocuments({
       createdAt: { $gte: sevenDaysAgo },
     });
-
     const newPosts = await Post.countDocuments({
       createdAt: { $gte: sevenDaysAgo },
     });
-
+    const newBlogs = await Blog.countDocuments({
+      createdAt: { $gte: sevenDaysAgo },
+    });
+    const newEvents = await Event.countDocuments({
+      createdAt: { $gte: sevenDaysAgo },
+    });
     const newComments = await Comment.countDocuments({
       createdAt: { $gte: sevenDaysAgo },
     });
 
+    // En çok beğenilen postlar (populate ile)
+    const topLikedPosts = await Post.find({ isApproved: true })
+      .populate("author", "username firstName lastName role")
+      .sort({ likes: -1 })
+      .limit(5)
+      .select("title content category likes views createdAt");
+
+    // En çok görüntülenen postlar (populate ile)
+    const topViewedPosts = await Post.find({ isApproved: true })
+      .populate("author", "username firstName lastName role")
+      .sort({ views: -1 })
+      .limit(5)
+      .select("title content category likes views createdAt");
+
+    // En çok beğenilen bloglar (populate ile)
+    const topLikedBlogs = await Blog.find({ isPublished: true, isApproved: true })
+      .populate("author", "username firstName lastName role")
+      .sort({ likes: -1 })
+      .limit(5)
+      .select("title content category likes views createdAt");
+
+    // En çok görüntülenen bloglar (populate ile)
+    const topViewedBlogs = await Blog.find({ isPublished: true, isApproved: true })
+      .populate("author", "username firstName lastName role")
+      .sort({ views: -1 })
+      .limit(5)
+      .select("title content category likes views createdAt");
+
+    // En çok beğenilen yorumlar (populate ile)
+    const topLikedComments = await Comment.find({ isApproved: true })
+      .populate("author", "username firstName lastName role")
+      .populate("postOrBlog", "title")
+      .sort({ likes: -1 })
+      .limit(5)
+      .select("content postType likes createdAt");
+
+    // En çok post atan kullanıcılar (populate ile)
+    const topPosters = await Post.aggregate([
+      {
+        $group: {
+          _id: "$author",
+          postCount: { $sum: 1 },
+          totalLikes: { $sum: { $size: "$likes" } },
+          totalViews: { $sum: "$views" },
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "_id",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      { $unwind: "$user" },
+      {
+        $project: {
+          userId: "$_id",
+          username: "$user.username",
+          firstName: "$user.firstName",
+          lastName: "$user.lastName",
+          role: "$user.role",
+          profilePicture: "$user.profilePicture",
+          postCount: 1,
+          totalLikes: 1,
+          totalViews: 1,
+        },
+      },
+      { $sort: { postCount: -1 } },
+      { $limit: 5 },
+    ]);
+
+    // En çok blog oluşturan kullanıcılar (populate ile)
+    const topBloggers = await Blog.aggregate([
+      {
+        $group: {
+          _id: "$author",
+          blogCount: { $sum: 1 },
+          totalLikes: { $sum: { $size: "$likes" } },
+          totalViews: { $sum: "$views" },
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "_id",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      { $unwind: "$user" },
+      {
+        $project: {
+          userId: "$_id",
+          username: "$user.username",
+          firstName: "$user.firstName",
+          lastName: "$user.lastName",
+          role: "$user.role",
+          profilePicture: "$user.profilePicture",
+          blogCount: 1,
+          totalLikes: 1,
+          totalViews: 1,
+        },
+      },
+      { $sort: { blogCount: -1 } },
+      { $limit: 5 },
+    ]);
+
+    // En çok yorum yapan kullanıcılar (populate ile)
+    const topCommenters = await Comment.aggregate([
+      {
+        $group: {
+          _id: "$author",
+          commentCount: { $sum: 1 },
+          totalLikes: { $sum: { $size: "$likes" } },
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "_id",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      { $unwind: "$user" },
+      {
+        $project: {
+          userId: "$_id",
+          username: "$user.username",
+          firstName: "$user.firstName",
+          lastName: "$user.lastName",
+          role: "$user.role",
+          profilePicture: "$user.profilePicture",
+          commentCount: 1,
+          totalLikes: 1,
+        },
+      },
+      { $sort: { commentCount: -1 } },
+      { $limit: 5 },
+    ]);
+
+    // En çok etkinliğe katılan kullanıcılar (populate ile)
+    const topEventParticipants = await Event.aggregate([
+      { $unwind: "$participants" },
+      {
+        $group: {
+          _id: "$participants.user",
+          eventCount: { $sum: 1 },
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "_id",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      { $unwind: "$user" },
+      {
+        $project: {
+          userId: "$_id",
+          username: "$user.username",
+          firstName: "$user.firstName",
+          lastName: "$user.lastName",
+          role: "$user.role",
+          profilePicture: "$user.profilePicture",
+          eventCount: 1,
+        },
+      },
+      { $sort: { eventCount: -1 } },
+      { $limit: 5 },
+    ]);
+
+    // Son kayıt olan kullanıcılar (populate ile)
+    const recentUsers = await User.find({})
+      .select("username firstName lastName role profilePicture createdAt isActive isVerified")
+      .sort({ createdAt: -1 })
+      .limit(10);
+
+    // En popüler etkinlikler (populate ile)
+    const topEvents = await Event.find({ status: "active" })
+      .populate("authorId", "username firstName lastName role")
+      .sort({ currentParticipants: -1 })
+      .limit(5)
+      .select("title description category currentParticipants maxParticipants date location organizer");
+
+    // Kategori istatistikleri
+    const postCategories = await Post.aggregate([
+      {
+        $group: {
+          _id: "$category",
+          count: { $sum: 1 },
+          totalLikes: { $sum: { $size: "$likes" } },
+          totalViews: { $sum: "$views" },
+        },
+      },
+      { $sort: { count: -1 } },
+    ]);
+
+    const blogCategories = await Blog.aggregate([
+      {
+        $group: {
+          _id: "$category",
+          count: { $sum: 1 },
+          totalLikes: { $sum: { $size: "$likes" } },
+          totalViews: { $sum: "$views" },
+        },
+      },
+      { $sort: { count: -1 } },
+    ]);
+
+    const eventCategories = await Event.aggregate([
+      {
+        $group: {
+          _id: "$category",
+          count: { $sum: 1 },
+          totalParticipants: { $sum: "$currentParticipants" },
+        },
+      },
+      { $sort: { count: -1 } },
+    ]);
+
+    // Toplam etkileşimler
+    const totalPostLikes = await Post.aggregate([
+      { $group: { _id: null, totalLikes: { $sum: { $size: "$likes" } } } }
+    ]);
+    const totalBlogLikes = await Blog.aggregate([
+      { $group: { _id: null, totalLikes: { $sum: { $size: "$likes" } } } }
+    ]);
+    const totalCommentLikes = await Comment.aggregate([
+      { $group: { _id: null, totalLikes: { $sum: { $size: "$likes" } } } }
+    ]);
+    const totalPostViews = await Post.aggregate([
+      { $group: { _id: null, totalViews: { $sum: "$views" } } }
+    ]);
+    const totalBlogViews = await Blog.aggregate([
+      { $group: { _id: null, totalViews: { $sum: "$views" } } }
+    ]);
+
+    // Son 24 saatteki aktivite
+    const last24Hours = new Date();
+    last24Hours.setHours(last24Hours.getHours() - 24);
+
+    const recentActivity = {
+      newUsers: await User.countDocuments({ createdAt: { $gte: last24Hours } }),
+      newPosts: await Post.countDocuments({ createdAt: { $gte: last24Hours } }),
+      newBlogs: await Blog.countDocuments({ createdAt: { $gte: last24Hours } }),
+      newEvents: await Event.countDocuments({ createdAt: { $gte: last24Hours } }),
+      newComments: await Comment.countDocuments({ createdAt: { $gte: last24Hours } }),
+    };
+
     res.json({
-      stats: {
-        totalUsers,
-        totalPosts,
-        totalComments,
-        totalDiseases,
-        pendingPosts,
-        reportedPosts,
-        reportedComments,
-        newUsers,
-        newPosts,
-        newComments,
+      success: true,
+      data: {
+        general: {
+          totalUsers,
+          totalPosts,
+          totalBlogs,
+          totalEvents,
+          totalComments,
+          totalDiseases,
+        },
+        users: {
+          activeUsers,
+          verifiedUsers,
+          doctors,
+          patients,
+          admins,
+        },
+        recent: {
+          newUsers,
+          newPosts,
+          newBlogs,
+          newEvents,
+          newComments,
+        },
+        topContent: {
+          topLikedPosts,
+          topViewedPosts,
+          topLikedBlogs,
+          topViewedBlogs,
+          topLikedComments,
+          topEvents,
+        },
+        topUsers: {
+          topPosters,
+          topBloggers,
+          topCommenters,
+          topEventParticipants,
+        },
+        recentUsers,
+        categories: {
+          postCategories,
+          blogCategories,
+          eventCategories,
+        },
+        interactions: {
+          totalPostLikes: totalPostLikes[0]?.totalLikes || 0,
+          totalBlogLikes: totalBlogLikes[0]?.totalLikes || 0,
+          totalCommentLikes: totalCommentLikes[0]?.totalLikes || 0,
+          totalPostViews: totalPostViews[0]?.totalViews || 0,
+          totalBlogViews: totalBlogViews[0]?.totalViews || 0,
+        },
+        recentActivity,
       },
     });
   } catch (error) {
     console.error("Dashboard istatistikleri hatası:", error);
     res.status(500).json({
+      success: false,
       message: "İstatistikler alınırken hata oluştu",
+      error: error.message,
     });
   }
 };
@@ -235,30 +544,3 @@ export const getPendingContent = async (req, res) => {
   }
 };
 
-// Kategori istatistikleri
-export const getCategoryStats = async (req, res) => {
-  try {
-    const categoryStats = await Post.aggregate([
-      {
-        $group: {
-          _id: "$category",
-          count: { $sum: 1 },
-          totalViews: { $sum: "$views" },
-          totalLikes: { $sum: { $size: "$likes" } },
-        },
-      },
-      {
-        $sort: { count: -1 },
-      },
-    ]);
-
-    res.json({
-      categoryStats,
-    });
-  } catch (error) {
-    console.error("Kategori istatistikleri hatası:", error);
-    res.status(500).json({
-      message: "Kategori istatistikleri alınırken hata oluştu",
-    });
-  }
-};

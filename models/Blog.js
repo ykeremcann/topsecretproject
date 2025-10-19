@@ -51,9 +51,10 @@ const blogSchema = new mongoose.Schema(
         type: String,
         validate: {
           validator: function (v) {
-            return /^https?:\/\/.+/.test(v);
+            // Hem relative path (/uploads/...) hem de full URL (http://... veya https://...) kabul et
+            return /^(https?:\/\/.+|\/uploads\/.+)/.test(v);
           },
-          message: "Geçerli bir URL girin",
+          message: "Geçerli bir resim URL veya path girin",
         },
       },
     ],
@@ -61,9 +62,10 @@ const blogSchema = new mongoose.Schema(
       type: String,
       validate: {
         validator: function (v) {
-          return !v || /^https?:\/\/.+/.test(v);
+          // Hem relative path (/uploads/...) hem de full URL (http://... veya https://...) kabul et
+          return !v || /^(https?:\/\/.+|\/uploads\/.+)/.test(v);
         },
-        message: "Geçerli bir URL girin",
+        message: "Geçerli bir resim URL veya path girin",
       },
     },
     isPublished: {
@@ -153,12 +155,12 @@ const blogSchema = new mongoose.Schema(
 
 // Virtual field for like count
 blogSchema.virtual("likesCount").get(function () {
-  return this.likes.length;
+  return this.likes ? this.likes.length : 0;
 });
 
 // Virtual field for dislike count
 blogSchema.virtual("dislikesCount").get(function () {
-  return this.dislikes.length;
+  return this.dislikes ? this.dislikes.length : 0;
 });
 
 // Comment count artırma metodu
@@ -178,14 +180,29 @@ blogSchema.set('toJSON', { virtuals: true });
 blogSchema.set('toObject', { virtuals: true });
 
 // Slug oluşturma middleware
-blogSchema.pre('save', function (next) {
+blogSchema.pre('save', async function (next) {
   if (this.isModified('title') && !this.slug) {
-    this.slug = this.title
+    let baseSlug = this.title
       .toLowerCase()
       .replace(/[^a-z0-9\s-]/g, '')
       .replace(/\s+/g, '-')
       .replace(/-+/g, '-')
       .trim('-');
+
+    // Aynı slug varsa sonuna sayı ekle
+    let slug = baseSlug;
+    let counter = 1;
+    
+    while (true) {
+      const existingBlog = await mongoose.model('Blog').findOne({ slug: slug });
+      if (!existingBlog || existingBlog._id.toString() === this._id.toString()) {
+        break;
+      }
+      slug = `${baseSlug}-${counter}`;
+      counter++;
+    }
+    
+    this.slug = slug;
   }
   next();
 });
@@ -200,14 +217,13 @@ blogSchema.pre('save', function (next) {
   next();
 });
 
-// Index'ler
+// Index'ler (slug zaten unique: true ile otomatik index'leniyor)
 blogSchema.index({ author: 1, createdAt: -1 });
 blogSchema.index({ category: 1, createdAt: -1 });
 blogSchema.index({ tags: 1 });
 blogSchema.index({ isPublished: 1, isApproved: 1, createdAt: -1 });
 blogSchema.index({ isFeatured: 1, createdAt: -1 });
 blogSchema.index({ title: "text", content: "text", excerpt: "text" });
-blogSchema.index({ slug: 1 });
 
 // Middleware to update view count
 blogSchema.methods.incrementViews = function () {

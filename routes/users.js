@@ -7,6 +7,7 @@ import {
   getUserStats,
   checkDoctorApprovalStatus,
   getApprovedDoctors,
+  updateUserById,
 } from "../controllers/userController.js";
 import { validateUserUpdate } from "../middleware/validation.js";
 import {
@@ -19,6 +20,9 @@ const router = express.Router();
 
 // GET /api/users - Tüm kullanıcıları getir (admin)
 router.get("/", authenticateToken, requireAdmin, getAllUsers);
+
+//id update
+router.put("/:userId", authenticateToken, requireAdmin, updateUserById);
 
 // GET /api/users/search - Kullanıcı arama
 router.get("/search", searchUsers);

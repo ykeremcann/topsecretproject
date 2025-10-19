@@ -4,9 +4,10 @@ import {
   login,
   refreshToken,
   getProfile,
+  updateUser,
   logout,
 } from "../controllers/authController.js";
-import { validateRegister, validateLogin } from "../middleware/validation.js";
+import { validateRegister, validateLogin, validateUserUpdate } from "../middleware/validation.js";
 import { authenticateToken } from "../middleware/auth.js";
 
 const router = express.Router();
@@ -22,6 +23,9 @@ router.post("/refresh", refreshToken);
 
 // GET /api/auth/profile - Kullanıcı profili
 router.get("/profile", authenticateToken, getProfile);
+
+// PUT /api/auth/profile - Kullanıcı profili güncelleme
+router.put("/profile", authenticateToken, validateUserUpdate, updateUser);
 
 // POST /api/auth/logout - Çıkış yapma
 router.post("/logout", authenticateToken, logout);
