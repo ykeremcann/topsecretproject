@@ -6,7 +6,6 @@ import {
   approveComment,
   getReportedContent,
   getPendingContent,
-  getCategoryStats,
 } from "../controllers/adminController.js";
 import {
   getPendingDoctors,
@@ -20,88 +19,8 @@ const router = express.Router();
 // Tüm admin route'ları için authentication ve admin yetkisi gerekli
 router.use(authenticateToken, requireAdmin);
 
-// GET /api/admin/dashboard - Dashboard istatistikleri
+// GET /api/admin/dashboard - Kapsamlı dashboard istatistikleri
 router.get("/dashboard", getDashboardStats);
-
-// GET /api/admin/stats/categories - Kategori istatistikleri
-router.get("/stats/categories", getCategoryStats);
-
-// GET /api/admin/stats/diseases - Hastalık istatistikleri
-router.get("/stats/diseases", async (req, res) => {
-  try {
-    const Disease = (await import("../models/Disease.js")).default;
-
-    const categoryStats = await Disease.aggregate([
-      { $match: { isActive: true } },
-      {
-        $group: {
-          _id: "$category",
-          count: { $sum: 1 },
-          severityBreakdown: {
-            $push: "$severity",
-          },
-        },
-      },
-      {
-        $project: {
-          category: "$_id",
-          count: 1,
-          lowSeverity: {
-            $size: {
-              $filter: {
-                input: "$severityBreakdown",
-                cond: { $eq: ["$$this", "low"] },
-              },
-            },
-          },
-          mediumSeverity: {
-            $size: {
-              $filter: {
-                input: "$severityBreakdown",
-                cond: { $eq: ["$$this", "medium"] },
-              },
-            },
-          },
-          highSeverity: {
-            $size: {
-              $filter: {
-                input: "$severityBreakdown",
-                cond: { $eq: ["$$this", "high"] },
-              },
-            },
-          },
-          criticalSeverity: {
-            $size: {
-              $filter: {
-                input: "$severityBreakdown",
-                cond: { $eq: ["$$this", "critical"] },
-              },
-            },
-          },
-        },
-      },
-      {
-        $sort: { count: -1 },
-      },
-    ]);
-
-    const totalDiseases = await Disease.countDocuments({ isActive: true });
-    const totalInactiveDiseases = await Disease.countDocuments({
-      isActive: false,
-    });
-
-    res.json({
-      categoryStats,
-      totalDiseases,
-      totalInactiveDiseases,
-    });
-  } catch (error) {
-    console.error("Hastalık istatistikleri hatası:", error);
-    res.status(500).json({
-      message: "Hastalık istatistikleri alınırken hata oluştu",
-    });
-  }
-});
 
 // PUT /api/admin/users/:userId - Kullanıcı durumu güncelle
 router.put("/users/:userId", updateUserStatus);

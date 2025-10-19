@@ -63,7 +63,7 @@ export const getAllPosts = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
-    const { category, author, search } = req.query;
+    const { category, author, search, isAdmin } = req.query;
 
     let query = { isApproved: true };
 
@@ -90,6 +90,9 @@ export const getAllPosts = async (req, res) => {
 
     // Kullanıcı token'dan ID'sini al
     const userId = req.user ? req.user._id : null;
+    
+    // Admin kontrolü - isAdmin query parametresi true ve kullanıcı admin ise
+    const showAnonymousAuthors = isAdmin === 'true' && req.user?.role === 'admin';
 
     // Her post için isLiked ve isDisliked alanlarını ekle
     const postsWithLikes = posts.map(post => {
@@ -97,8 +100,8 @@ export const getAllPosts = async (req, res) => {
       postObj.isLiked = userId ? post.likes.includes(userId) : false;
       postObj.isDisliked = userId ? post.dislikes.includes(userId) : false;
       
-      // Eğer post anonim ise author bilgilerini gizle
-      if (postObj.isAnonymous) {
+      // Eğer post anonim ise ve admin değilse author bilgilerini gizle
+      if (postObj.isAnonymous && !showAnonymousAuthors) {
         postObj.author = {
           _id: null,
           username: "Anonim Kullanıcı",

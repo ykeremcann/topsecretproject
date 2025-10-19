@@ -79,12 +79,15 @@ export const getAllBlogs = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
-    const { category, author, search, featured, published } = req.query;
+    const { category, author, search, featured, published, isAdmin } = req.query;
 
     let query = { isApproved: true };
 
+    // Admin kontrolü - isAdmin query parametresi true ve kullanıcı admin ise
+    const isAdminUser = isAdmin === 'true' && req.user?.role === 'admin';
+
     // Sadece yayınlanmış blog'ları göster (admin hariç)
-    if (req.user?.role !== "admin") {
+    if (!isAdminUser) {
       query.isPublished = true;
     } else if (published !== undefined) {
       query.isPublished = published === "true";

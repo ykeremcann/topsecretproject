@@ -180,14 +180,29 @@ blogSchema.set('toJSON', { virtuals: true });
 blogSchema.set('toObject', { virtuals: true });
 
 // Slug oluşturma middleware
-blogSchema.pre('save', function (next) {
+blogSchema.pre('save', async function (next) {
   if (this.isModified('title') && !this.slug) {
-    this.slug = this.title
+    let baseSlug = this.title
       .toLowerCase()
       .replace(/[^a-z0-9\s-]/g, '')
       .replace(/\s+/g, '-')
       .replace(/-+/g, '-')
       .trim('-');
+
+    // Aynı slug varsa sonuna sayı ekle
+    let slug = baseSlug;
+    let counter = 1;
+    
+    while (true) {
+      const existingBlog = await mongoose.model('Blog').findOne({ slug: slug });
+      if (!existingBlog || existingBlog._id.toString() === this._id.toString()) {
+        break;
+      }
+      slug = `${baseSlug}-${counter}`;
+      counter++;
+    }
+    
+    this.slug = slug;
   }
   next();
 });
