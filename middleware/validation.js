@@ -487,3 +487,48 @@ export const validateComment = [
     .withMessage("Geçerli bir parent comment ID'si girin"),
   handleValidationErrors,
 ];
+
+// Egzersiz oluşturma/güncelleme validation
+export const validateExercise = [
+  body("name")
+    .isLength({ min: 2, max: 100 })
+    .withMessage("Egzersiz adı 2-100 karakter arasında olmalı")
+    .trim(),
+
+  body("description")
+    .optional()
+    .isLength({ max: 500 })
+    .withMessage("Açıklama en fazla 500 karakter olabilir")
+    .trim(),
+
+  body("duration")
+    .isInt({ min: 1, max: 300 })
+    .withMessage("Egzersiz süresi 1-300 dakika arasında olmalı"),
+
+  body("period")
+    .isIn(["daily", "weekly", "monthly", "custom"])
+    .withMessage("Geçerli bir periyot seçin"),
+
+  body("customPeriod")
+    .optional()
+    .isInt({ min: 1, max: 365 })
+    .withMessage("Özel periyot 1-365 gün arasında olmalı"),
+
+  handleValidationErrors,
+];
+
+// Egzersiz tamamlama validation
+export const validateExerciseCompletion = [
+  body("duration")
+    .optional()
+    .isInt({ min: 1, max: 300 })
+    .withMessage("Egzersiz süresi 1-300 dakika arasında olmalı"),
+
+  body("notes")
+    .optional()
+    .isLength({ max: 200 })
+    .withMessage("Notlar en fazla 200 karakter olabilir")
+    .trim(),
+
+  handleValidationErrors,
+];
