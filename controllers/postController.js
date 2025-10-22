@@ -45,9 +45,23 @@ export const createPost = async (req, res) => {
     // Populate author bilgileri
     await post.populate("author", "username firstName lastName profilePicture");
 
+    // Post objesini dönüştür
+    const postObj = post.toObject();
+
+    // Eğer post anonim ise author bilgilerini gizle
+    if (postObj.isAnonymous) {
+      postObj.author = {
+        _id: null,
+        username: "Anonim Kullanıcı",
+        firstName: "Anonim",
+        lastName: "Kullanıcı",
+        profilePicture: null
+      };
+    }
+
     res.status(201).json({
       message: "Post başarıyla oluşturuldu",
-      post,
+      post: postObj,
     });
   } catch (error) {
     console.error("Post oluşturma hatası:", error);
