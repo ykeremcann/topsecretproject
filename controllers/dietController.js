@@ -1,4 +1,3 @@
-
 import Diet from "../models/Diet.js";
 import User from "../models/User.js";
 import { validationResult } from "express-validator";
@@ -59,8 +58,10 @@ export const getDietById = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
-    const diet = await Diet.findOne({ _id: id, user: userId })
-      .populate("user", "firstName lastName email");
+    const diet = await Diet.findOne({ _id: id, user: userId }).populate(
+      "user",
+      "firstName lastName email"
+    );
     if (!diet) {
       return res.status(404).json({
         success: false,
@@ -92,7 +93,8 @@ export const createDiet = async (req, res) => {
         errors: errors.array(),
       });
     }
-    const { name, description, duration, period, customPeriod } = req.body;
+    const { name, description, duration, period, customPeriod, startDate } =
+      req.body;
     const userId = req.user.id;
     if (period === "custom" && !customPeriod) {
       return res.status(400).json({
@@ -106,6 +108,7 @@ export const createDiet = async (req, res) => {
       description,
       duration,
       period,
+      startDate,
     };
     if (period === "custom") {
       dietData.customPeriod = customPeriod;
@@ -224,7 +227,9 @@ export const completeDiet = async (req, res) => {
     const today = new Date();
     const todayStr = today.toISOString().split("T")[0];
     const alreadyCompleted = diet.completionHistory.some((record) => {
-      const recordDate = new Date(record.completedAt).toISOString().split("T")[0];
+      const recordDate = new Date(record.completedAt)
+        .toISOString()
+        .split("T")[0];
       return recordDate === todayStr;
     });
     if (alreadyCompleted) {
@@ -288,11 +293,17 @@ export const getUserDietStats = async (req, res) => {
     const stats = {
       totalDiets: diets.length,
       activeDiets: diets.filter((d) => d.isActive).length,
-      totalCompletions: diets.reduce((acc, d) => acc + (d.completionHistory?.length || 0), 0),
+      totalCompletions: diets.reduce(
+        (acc, d) => acc + (d.completionHistory?.length || 0),
+        0
+      ),
       longestStreak: 0,
     };
     diets.forEach((diet) => {
-      if (diet.completionHistory && diet.completionHistory.length > stats.longestStreak) {
+      if (
+        diet.completionHistory &&
+        diet.completionHistory.length > stats.longestStreak
+      ) {
         stats.longestStreak = diet.completionHistory.length;
       }
     });
