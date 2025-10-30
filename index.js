@@ -60,7 +60,6 @@ app.use("/api/events", eventRoutes);
 app.use("/api/blogs", blogRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/exercises", exerciseRoutes);
-
 app.use("/api/diets", dietRoutes);
 
 // Health check endpoint

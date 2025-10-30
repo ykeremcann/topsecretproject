@@ -1,18 +1,33 @@
+
 import express from "express";
-import dietController from "../controllers/dietController.js"
+import dietController from "../controllers/dietController.js";
 import { authenticateToken } from "../middleware/auth.js";
+// import { validateDiet, validateDietCompletion } from "../middleware/validation.js"; // Uncomment if you add validation
 
 const router = express.Router();
 
-// Tüm route'lar authentication gerektirir
-router.use(authenticateToken);
+// GET /api/diets - Tüm diyetleri getir
+router.get("/", authenticateToken, dietController.getDiets);
 
-router.get("/", dietController.getDiets);
-router.get("/stats", dietController.getStats);
-router.post("/", dietController.createDiet);
-router.put("/:id", dietController.updateDiet);
-router.delete("/:id", dietController.deleteDiet);
-router.post("/:id/complete", dietController.completeDiet);
-router.patch("/:id/toggle", dietController.toggleDiet);
+// GET /api/diets/stats - Kullanıcı diyet istatistiklerini getir
+router.get("/stats", authenticateToken, dietController.getStats);
+
+// POST /api/diets - Yeni diyet oluştur
+// router.post("/", authenticateToken, validateDiet, dietController.createDiet); // Uncomment validateDiet if you add validation
+router.post("/", authenticateToken, dietController.createDiet);
+
+// PUT /api/diets/:id - Diyet güncelle
+// router.put("/:id", authenticateToken, validateDiet, dietController.updateDiet); // Uncomment validateDiet if you add validation
+router.put("/:id", authenticateToken, dietController.updateDiet);
+
+// DELETE /api/diets/:id - Diyet sil
+router.delete("/:id", authenticateToken, dietController.deleteDiet);
+
+// POST /api/diets/:id/complete - Diyeti tamamla
+// router.post("/:id/complete", authenticateToken, validateDietCompletion, dietController.completeDiet); // Uncomment validateDietCompletion if you add validation
+router.post("/:id/complete", authenticateToken, dietController.completeDiet);
+
+// PATCH /api/diets/:id/toggle - Diyet durumunu değiştir (aktif/pasif)
+router.patch("/:id/toggle", authenticateToken, dietController.toggleDiet);
 
 export default router;
