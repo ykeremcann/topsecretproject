@@ -645,3 +645,36 @@ export const getApprovedDoctors = async (req, res) => {
     });
   }
 };
+
+
+// Onaylanmış tek bir doktoru username ile getir
+export const getApprovedDoctorByUsername = async (req, res) => {
+  try {
+    const { username } = req.params;
+
+    // Expert (onaylanmış doktor) filtrelemesi
+    const query = {
+      role: "doctor",
+      "doctorInfo.approvalStatus": "approved",
+      isActive: true,
+      username: username,
+    };
+
+    const doctor = await User.findOne(query)
+      .select("-password")
+      .populate("doctorInfo.approvedBy", "username firstName lastName");
+
+    if (!doctor) {
+      return res.status(404).json({
+        message: "Onaylanmış doktor bulunamadı",
+      });
+    }
+
+    res.json({ expert: doctor });
+  } catch (error) {
+    console.error("Onaylanmış doktoru username ile getirme hatası:", error);
+    res.status(500).json({
+      message: "Doktor bilgileri alınırken hata oluştu",
+    });
+  }
+};

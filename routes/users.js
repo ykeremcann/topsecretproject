@@ -8,6 +8,7 @@ import {
   checkDoctorApprovalStatus,
   getApprovedDoctors,
   updateUserById,
+  getApprovedDoctorByUsername
 } from "../controllers/userController.js";
 import { validateUserUpdate } from "../middleware/validation.js";
 import {
@@ -32,6 +33,9 @@ router.get("/experts", getApprovedDoctors);
 
 // GET /api/users/doctor/approval-status - Doktor onay durumu kontrol et
 router.get("/doctor/approval-status", authenticateToken, checkDoctorApprovalStatus);
+
+// GET /api/users/experts/:username - Onaylanmış doktoru username ile getir
+router.get("/experts/:username", getApprovedDoctorByUsername);
 
 // GET /api/users/:userId/stats - Kullanıcı istatistikleri
 router.get("/:userId/stats", getUserStats);
