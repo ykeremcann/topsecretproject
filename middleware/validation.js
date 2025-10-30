@@ -128,7 +128,6 @@ export const validatePost = [
   handleValidationErrors,
 ];
 
-
 // Kullanıcı güncelleme validation
 export const validateUserUpdate = [
   body("firstName")
@@ -524,6 +523,61 @@ export const validateExerciseCompletion = [
     .isInt({ min: 1, max: 300 })
     .withMessage("Egzersiz süresi 1-300 dakika arasında olmalı"),
 
+  body("notes")
+    .optional()
+    .isLength({ max: 200 })
+    .withMessage("Notlar en fazla 200 karakter olabilir")
+    .trim(),
+
+  handleValidationErrors,
+];
+
+// Diyet oluşturma/güncelleme validation
+export const validateDiet = [
+  body("name")
+    .isLength({ min: 2, max: 100 })
+    .withMessage("Diyet adı 2-100 karakter arasında olmalı")
+    .trim(),
+
+  body("description")
+    .optional()
+    .isLength({ max: 500 })
+    .withMessage("Açıklama en fazla 500 karakter olabilir")
+    .trim(),
+
+  body("duration")
+    .isInt({ min: 1, max: 365 }) // Modelde gün olarak belirtilmiş, 1-365 gün arası
+    .withMessage("Diyet süresi 1-365 gün arasında olmalı"),
+
+  body("period")
+    .isIn(["daily", "weekly", "monthly", "custom"])
+    .withMessage("Geçerli bir periyot seçin"),
+
+  body("customPeriod")
+    .optional()
+    .isInt({ min: 1, max: 365 })
+    .withMessage("Özel periyot 1-365 gün arasında olmalı"),
+
+  body("startDate")
+    .isISO8601() // Geçerli bir tarih formatı (YYYY-MM-DD)
+    .withMessage("Başlangıç tarihi geçerli bir tarih formatında olmalı"),
+
+  body("endDate")
+    .optional()
+    .isISO8601()
+    .withMessage("Bitiş tarihi geçerli bir tarih formatında olmalı"),
+
+  // İsteğe bağlı, isActive sadece boolean olmalı
+  body("isActive")
+    .optional()
+    .isBoolean()
+    .withMessage("Aktiflik durumu boolean olmalı"),
+
+  handleValidationErrors,
+];
+
+// Diyet tamamlama validation
+export const validateDietCompletion = [
   body("notes")
     .optional()
     .isLength({ max: 200 })
