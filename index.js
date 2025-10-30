@@ -15,6 +15,7 @@ import eventRoutes from "./routes/events.js";
 import blogRoutes from "./routes/blogs.js";
 import uploadRoutes from "./routes/upload.js";
 import exerciseRoutes from "./routes/exercises.js";
+import dietRoutes from "./routes/diets.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -26,7 +27,7 @@ const PORT = process.env.PORT || 5000;
 
 // Rate limiting
 const limiter = rateLimit({
- windowMs: 15 * 60 * 1000, // 15 dakika"
+  windowMs: 15 * 60 * 1000, // 15 dakika"
   max: 100, // IP başına maksimum 100 istek
   message: "Çok fazla istek gönderildi, lütfen daha sonra tekrar deneyin.",
 });
@@ -34,10 +35,12 @@ const limiter = rateLimit({
 // Middleware
 app.use(helmet());
 //use cors just for all localhost not just localhost:3000
-app.use(cors({
-  origin: "*",
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: "*",
+    credentials: true,
+  })
+);
 
 app.use(limiter);
 
@@ -58,6 +61,7 @@ app.use("/api/blogs", blogRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/exercises", exerciseRoutes);
 
+app.use("/api/diets", dietRoutes);
 
 // Health check endpoint
 app.get("/api/health", (req, res) => {
