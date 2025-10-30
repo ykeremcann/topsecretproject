@@ -61,8 +61,10 @@ export const getExerciseById = async (req, res) => {
     const { id } = req.params;
     const userId = req.user.id;
 
-    const exercise = await Exercise.findOne({ _id: id, user: userId })
-      .populate("user", "firstName lastName email");
+    const exercise = await Exercise.findOne({ _id: id, user: userId }).populate(
+      "user",
+      "firstName lastName email"
+    );
 
     if (!exercise) {
       return res.status(404).json({
@@ -97,13 +99,7 @@ export const createExercise = async (req, res) => {
       });
     }
 
-    const {
-      name,
-      description,
-      duration,
-      period,
-      customPeriod,
-    } = req.body;
+    const { name, description, duration, period, customPeriod } = req.body;
 
     const userId = req.user.id;
 
@@ -297,7 +293,9 @@ export const toggleExerciseStatus = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: `Egzersiz ${exercise.isActive ? "aktif" : "pasif"} hale getirildi`,
+      message: `Egzersiz ${
+        exercise.isActive ? "aktif" : "pasif"
+      } hale getirildi`,
       data: exercise,
     });
   } catch (error) {
@@ -335,10 +333,10 @@ export const getUserStats = async (req, res) => {
 export const getActiveExercises = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { period = 'daily' } = req.query; // daily, weekly, monthly, custom
+    const { period = "daily" } = req.query; // daily, weekly, monthly, custom
 
     let query = { user: userId, isActive: true };
-    
+
     // Periyot filtresi ekle
     if (period) {
       query.period = period;
@@ -351,38 +349,38 @@ export const getActiveExercises = async (req, res) => {
     let startDate, endDate, periodLabel;
 
     switch (period) {
-      case 'daily':
+      case "daily":
         startDate = new Date(now);
         startDate.setHours(0, 0, 0, 0);
         endDate = new Date(now);
         endDate.setHours(23, 59, 59, 999);
-        periodLabel = 'Günlük';
+        periodLabel = "Günlük";
         break;
-      
-      case 'weekly':
+
+      case "weekly":
         startDate = new Date(now);
         startDate.setDate(now.getDate() - now.getDay()); // Bu haftanın başlangıcı (Pazar)
         startDate.setHours(0, 0, 0, 0);
         endDate = new Date(startDate);
         endDate.setDate(startDate.getDate() + 6);
         endDate.setHours(23, 59, 59, 999);
-        periodLabel = 'Haftalık';
+        periodLabel = "Haftalık";
         break;
-      
-      case 'monthly':
+
+      case "monthly":
         startDate = new Date(now.getFullYear(), now.getMonth(), 1);
         startDate.setHours(0, 0, 0, 0);
         endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
         endDate.setHours(23, 59, 59, 999);
-        periodLabel = 'Aylık';
+        periodLabel = "Aylık";
         break;
-      
+
       default:
         startDate = new Date(now);
         startDate.setHours(0, 0, 0, 0);
         endDate = new Date(now);
         endDate.setHours(23, 59, 59, 999);
-        periodLabel = 'Günlük';
+        periodLabel = "Günlük";
     }
 
     const periodData = {
@@ -397,13 +395,15 @@ export const getActiveExercises = async (req, res) => {
     };
 
     for (const exercise of exercises) {
-      const periodCompletions = exercise.completionHistory.filter(completion => {
-        const completionDate = new Date(completion.completedAt);
-        return completionDate >= startDate && completionDate <= endDate;
-      });
+      const periodCompletions = exercise.completionHistory.filter(
+        (completion) => {
+          const completionDate = new Date(completion.completedAt);
+          return completionDate >= startDate && completionDate <= endDate;
+        }
+      );
 
       periodData.totalExercises++;
-      
+
       if (periodCompletions.length > 0) {
         periodData.completedExercises++;
         periodData.totalDuration += periodCompletions.reduce(
@@ -488,7 +488,6 @@ export const getExerciseHistory = async (req, res) => {
   }
 };
 
-
 // Günlük egzersiz özeti
 export const getDailySummary = async (req, res) => {
   try {
@@ -513,14 +512,14 @@ export const getDailySummary = async (req, res) => {
     };
 
     for (const exercise of exercises) {
-      const dayCompletions = exercise.completionHistory.filter(completion => {
+      const dayCompletions = exercise.completionHistory.filter((completion) => {
         const completionDate = new Date(completion.completedAt);
         return completionDate >= startOfDay && completionDate <= endOfDay;
       });
 
       if (exercise.isActive) {
         dailyData.totalExercises++;
-        
+
         if (dayCompletions.length > 0) {
           dailyData.completedExercises++;
           dailyData.totalDuration += dayCompletions.reduce(
@@ -561,12 +560,12 @@ export const getDailySummary = async (req, res) => {
 export const getCalendarData = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { period = 'daily' } = req.query; // daily, weekly, monthly
+    const { period = "daily" } = req.query; // daily, weekly, monthly
 
     // Aktif egzersizleri getir
-    const exercises = await Exercise.find({ 
-      user: userId, 
-      isActive: true 
+    const exercises = await Exercise.find({
+      user: userId,
+      isActive: true,
     }).sort({ createdAt: -1 });
 
     // Tarih aralığını period'a göre belirle
@@ -574,38 +573,38 @@ export const getCalendarData = async (req, res) => {
     let startDate, endDate, periodLabel;
 
     switch (period) {
-      case 'daily':
+      case "daily":
         startDate = new Date(now);
         startDate.setHours(0, 0, 0, 0);
         endDate = new Date(now);
         endDate.setHours(23, 59, 59, 999);
-        periodLabel = 'Günlük';
+        periodLabel = "Günlük";
         break;
-      
-      case 'weekly':
+
+      case "weekly":
         startDate = new Date(now);
         startDate.setDate(now.getDate() - now.getDay()); // Bu haftanın başlangıcı (Pazar)
         startDate.setHours(0, 0, 0, 0);
         endDate = new Date(startDate);
         endDate.setDate(startDate.getDate() + 6);
         endDate.setHours(23, 59, 59, 999);
-        periodLabel = 'Haftalık';
+        periodLabel = "Haftalık";
         break;
-      
-      case 'monthly':
+
+      case "monthly":
         startDate = new Date(now.getFullYear(), now.getMonth(), 1);
         startDate.setHours(0, 0, 0, 0);
         endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
         endDate.setHours(23, 59, 59, 999);
-        periodLabel = 'Aylık';
+        periodLabel = "Aylık";
         break;
-      
+
       default:
         startDate = new Date(now);
         startDate.setHours(0, 0, 0, 0);
         endDate = new Date(now);
         endDate.setHours(23, 59, 59, 999);
-        periodLabel = 'Günlük';
+        periodLabel = "Günlük";
     }
 
     // Tarih bazlı veri yapısı oluştur
@@ -614,15 +613,17 @@ export const getCalendarData = async (req, res) => {
 
     // Her egzersiz için completion'ları kontrol et
     for (const exercise of exercises) {
-      const periodCompletions = exercise.completionHistory.filter(completion => {
-        const completionDate = new Date(completion.completedAt);
-        return completionDate >= startDate && completionDate <= endDate;
-      });
+      const periodCompletions = exercise.completionHistory.filter(
+        (completion) => {
+          const completionDate = new Date(completion.completedAt);
+          return completionDate >= startDate && completionDate <= endDate;
+        }
+      );
 
       // Her completion tarihini işle
-      periodCompletions.forEach(completion => {
+      periodCompletions.forEach((completion) => {
         const completionDate = new Date(completion.completedAt);
-        const dateKey = completionDate.toISOString().split('T')[0]; // YYYY-MM-DD formatı
+        const dateKey = completionDate.toISOString().split("T")[0]; // YYYY-MM-DD formatı
 
         if (!calendarData[dateKey]) {
           calendarData[dateKey] = {
@@ -630,8 +631,8 @@ export const getCalendarData = async (req, res) => {
             totalExercises: totalExercises,
             completedExercises: 0,
             partialExercises: 0,
-            status: 'failed', // Varsayılan durum
-            exercises: []
+            status: "failed", // Varsayılan durum
+            exercises: [],
           };
         }
 
@@ -643,17 +644,17 @@ export const getCalendarData = async (req, res) => {
         // Egzersiz durumunu belirle
         let exerciseStatus;
         if (completionPercentage >= 100) {
-          exerciseStatus = 'success';
+          exerciseStatus = "success";
         } else if (completionPercentage >= 50) {
-          exerciseStatus = 'partial';
+          exerciseStatus = "partial";
         } else {
-          exerciseStatus = 'failed';
+          exerciseStatus = "failed";
         }
 
         // Sadece success ve partial durumlarını ekle
-        if (exerciseStatus === 'success' || exerciseStatus === 'partial') {
+        if (exerciseStatus === "success" || exerciseStatus === "partial") {
           const existingExercise = calendarData[dateKey].exercises.find(
-            ex => ex.exerciseId === exercise._id.toString()
+            (ex) => ex.exerciseId === exercise._id.toString()
           );
 
           if (!existingExercise) {
@@ -663,12 +664,12 @@ export const getCalendarData = async (req, res) => {
               targetDuration: targetDuration,
               completedDuration: completedDuration,
               completionPercentage: Math.round(completionPercentage),
-              status: exerciseStatus
+              status: exerciseStatus,
             });
 
-            if (exerciseStatus === 'success') {
+            if (exerciseStatus === "success") {
               calendarData[dateKey].completedExercises++;
-            } else if (exerciseStatus === 'partial') {
+            } else if (exerciseStatus === "partial") {
               calendarData[dateKey].partialExercises++;
             }
           }
@@ -677,21 +678,24 @@ export const getCalendarData = async (req, res) => {
     }
 
     // Her tarih için genel durumu hesapla
-    Object.keys(calendarData).forEach(dateKey => {
+    Object.keys(calendarData).forEach((dateKey) => {
       const dayData = calendarData[dateKey];
-      
+
       if (dayData.completedExercises === totalExercises) {
-        dayData.status = 'success';
-      } else if (dayData.completedExercises > 0 || dayData.partialExercises > 0) {
-        dayData.status = 'partial';
+        dayData.status = "success";
+      } else if (
+        dayData.completedExercises > 0 ||
+        dayData.partialExercises > 0
+      ) {
+        dayData.status = "partial";
       } else {
-        dayData.status = 'failed';
+        dayData.status = "failed";
       }
     });
 
     // Sadece success ve partial durumlarındaki tarihleri döndür
     const filteredCalendarData = Object.values(calendarData).filter(
-      dayData => dayData.status === 'success' || dayData.status === 'partial'
+      (dayData) => dayData.status === "success" || dayData.status === "partial"
     );
 
     res.status(200).json({
@@ -702,8 +706,8 @@ export const getCalendarData = async (req, res) => {
         startDate: startDate,
         endDate: endDate,
         totalDays: filteredCalendarData.length,
-        calendarData: filteredCalendarData
-      }
+        calendarData: filteredCalendarData,
+      },
     });
   } catch (error) {
     console.error("Takvim verilerini getirme hatası:", error);
