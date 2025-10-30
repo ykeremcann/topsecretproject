@@ -15,7 +15,7 @@ import eventRoutes from "./routes/events.js";
 import blogRoutes from "./routes/blogs.js";
 import uploadRoutes from "./routes/upload.js";
 import exerciseRoutes from "./routes/exercises.js";
- import dietRoutes from "./routes/diets.js";
+import dietRoutes from "./routes/diets.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -60,7 +60,7 @@ app.use("/api/events", eventRoutes);
 app.use("/api/blogs", blogRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/exercises", exerciseRoutes);
- app.use("/api/diets", dietRoutes);
+app.use("/api/diets", dietRoutes);
 
 // Health check endpoint
 app.get("/api/health", (req, res) => {
