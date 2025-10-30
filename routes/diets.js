@@ -1,10 +1,11 @@
-const express = require("express");
-const router = express.Router();
-const dietController = require("../controllers/dietController");
-const auth = require("../middleware/auth");
+import express from "express";
+import dietController from "../controllers/dietController.js";
+import { authenticateToken } from "../middleware/auth.js";
 
-// All routes require authentication
-router.use(auth);
+const router = express.Router();
+
+// Tüm route'lar authentication gerektirir
+router.use(authenticateToken);
 
 router.get("/", dietController.getDiets);
 router.get("/stats", dietController.getStats);
@@ -14,4 +15,4 @@ router.delete("/:id", dietController.deleteDiet);
 router.post("/:id/complete", dietController.completeDiet);
 router.patch("/:id/toggle", dietController.toggleDiet);
 
-module.exports = router;
+export default router;
