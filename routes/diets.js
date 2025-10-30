@@ -1,5 +1,5 @@
 import express from "express";
-import dietController from "../controllers/dietController.js";
+import dietController from "../controllers/dietController.js"
 import { authenticateToken } from "../middleware/auth.js";
 
 const router = express.Router();

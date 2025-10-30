@@ -1,8 +1,8 @@
-const Diet = require("../models/Diet");
-const User = require("../models/User");
+import Diet from "../models/Diet.js";
+import User from "../models/User.js";
 
 // GET /api/diets
-exports.getDiets = async (req, res) => {
+const getDiets = async (req, res) => {
   try {
     const userId = req.user._id;
     const diets = await Diet.find({ user: userId }).sort({ createdAt: -1 });
@@ -13,7 +13,7 @@ exports.getDiets = async (req, res) => {
 };
 
 // GET /api/diets/stats
-exports.getStats = async (req, res) => {
+const getStats = async (req, res) => {
   try {
     const userId = req.user._id;
     const diets = await Diet.find({ user: userId });
@@ -42,7 +42,7 @@ exports.getStats = async (req, res) => {
 };
 
 // POST /api/diets
-exports.createDiet = async (req, res) => {
+const createDiet = async (req, res) => {
   try {
     const userId = req.user._id;
     const { name, description, duration, period, customPeriod } = req.body;
@@ -69,7 +69,7 @@ exports.createDiet = async (req, res) => {
 };
 
 // PUT /api/diets/:id
-exports.updateDiet = async (req, res) => {
+const updateDiet = async (req, res) => {
   try {
     const userId = req.user._id;
     const { id } = req.params;
@@ -89,7 +89,7 @@ exports.updateDiet = async (req, res) => {
 };
 
 // DELETE /api/diets/:id
-exports.deleteDiet = async (req, res) => {
+const deleteDiet = async (req, res) => {
   try {
     const userId = req.user._id;
     const { id } = req.params;
@@ -102,7 +102,7 @@ exports.deleteDiet = async (req, res) => {
 };
 
 // POST /api/diets/:id/complete
-exports.completeDiet = async (req, res) => {
+const completeDiet = async (req, res) => {
   try {
     const userId = req.user._id;
     const { id } = req.params;
@@ -133,7 +133,7 @@ exports.completeDiet = async (req, res) => {
 };
 
 // PATCH /api/diets/:id/toggle
-exports.toggleDiet = async (req, res) => {
+const toggleDiet = async (req, res) => {
   try {
     const userId = req.user._id;
     const { id } = req.params;
@@ -147,4 +147,14 @@ exports.toggleDiet = async (req, res) => {
       .status(400)
       .json({ message: "Diyet durumu değiştirilemedi", error: err.message });
   }
+};
+
+export default {
+  getDiets,
+  getStats,
+  createDiet,
+  updateDiet,
+  deleteDiet,
+  completeDiet,
+  toggleDiet,
 };
