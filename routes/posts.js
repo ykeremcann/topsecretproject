@@ -11,12 +11,16 @@ import {
   getUserPosts,
 } from "../controllers/postController.js";
 import { validatePost } from "../middleware/validation.js";
-import { authenticateToken, optionalAuth } from "../middleware/auth.js";
+import {
+  authenticateToken,
+  optionalAuth,
+  optionalAuthOrAnonymous,
+} from "../middleware/auth.js";
 
 const router = express.Router();
 
 // POST /api/posts - Post oluştur
-router.post("/", authenticateToken, validatePost, createPost);
+router.post("/", optionalAuthOrAnonymous, validatePost, createPost);
 
 // GET /api/posts - Tüm post'ları getir
 router.get("/", optionalAuth, getAllPosts);

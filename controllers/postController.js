@@ -28,7 +28,7 @@ export const createPost = async (req, res) => {
     }
 
     const post = new Post({
-      author: req.user._id,
+      author: req.user?._id || "00xanonymus", // veya sabit bir "anonim" user ID
       title,
       content,
       category,
@@ -38,6 +38,7 @@ export const createPost = async (req, res) => {
       isSensitive: isSensitive || false,
       symptoms: symptoms || [],
       treatments: treatments || [],
+      isAnonymous: !req.user ? true : isAnonymous || false,
     });
 
     await post.save();
@@ -55,7 +56,7 @@ export const createPost = async (req, res) => {
         username: "Anonim Kullanıcı",
         firstName: "Anonim",
         lastName: "Kullanıcı",
-        profilePicture: null
+        profilePicture: null,
       };
     }
 
@@ -104,16 +105,17 @@ export const getAllPosts = async (req, res) => {
 
     // Kullanıcı token'dan ID'sini al
     const userId = req.user ? req.user._id : null;
-    
+
     // Admin kontrolü - isAdmin query parametresi true ve kullanıcı admin ise
-    const showAnonymousAuthors = isAdmin === 'true' && req.user?.role === 'admin';
+    const showAnonymousAuthors =
+      isAdmin === "true" && req.user?.role === "admin";
 
     // Her post için isLiked ve isDisliked alanlarını ekle
-    const postsWithLikes = posts.map(post => {
+    const postsWithLikes = posts.map((post) => {
       const postObj = post.toObject();
       postObj.isLiked = userId ? post.likes.includes(userId) : false;
       postObj.isDisliked = userId ? post.dislikes.includes(userId) : false;
-      
+
       // Eğer post anonim ise ve admin değilse author bilgilerini gizle
       if (postObj.isAnonymous && !showAnonymousAuthors) {
         postObj.author = {
@@ -121,10 +123,10 @@ export const getAllPosts = async (req, res) => {
           username: "Anonim Kullanıcı",
           firstName: "Anonim",
           lastName: "Kullanıcı",
-          profilePicture: null
+          profilePicture: null,
         };
       }
-      
+
       return postObj;
     });
 
@@ -140,9 +142,9 @@ export const getAllPosts = async (req, res) => {
         $project: {
           name: "$_id",
           count: 1,
-          _id: 0
-        }
-      }
+          _id: 0,
+        },
+      },
     ]);
 
     res.json({
@@ -167,8 +169,10 @@ export const getAllPosts = async (req, res) => {
 // Post detayını getir
 export const getPostById = async (req, res) => {
   try {
-    const post = await Post.findById(req.params.postId)
-      .populate("author", "username firstName lastName profilePicture")
+    const post = await Post.findById(req.params.postId).populate(
+      "author",
+      "username firstName lastName profilePicture"
+    );
 
     if (!post) {
       return res.status(404).json({
@@ -186,7 +190,7 @@ export const getPostById = async (req, res) => {
     const postObj = post.toObject();
     postObj.isLiked = userId ? post.likes.includes(userId) : false;
     postObj.isDisliked = userId ? post.dislikes.includes(userId) : false;
-    
+
     // Eğer post anonim ise author bilgilerini gizle
     if (postObj.isAnonymous) {
       postObj.author = {
@@ -194,22 +198,27 @@ export const getPostById = async (req, res) => {
         username: "Anonim Kullanıcı",
         firstName: "Anonim",
         lastName: "Kullanıcı",
-        profilePicture: null
+        profilePicture: null,
       };
     }
 
     // En yeni 3 post'u getir (newPosts)
-    const newPosts = await Post.find({ isApproved: true, _id: { $ne: post._id } })
+    const newPosts = await Post.find({
+      isApproved: true,
+      _id: { $ne: post._id },
+    })
       .populate("author", "username firstName lastName profilePicture")
       .sort({ createdAt: -1 })
       .limit(3);
 
     // newPosts için isLiked ve isDisliked ekle
-    const newPostsWithLikes = newPosts.map(newPost => {
+    const newPostsWithLikes = newPosts.map((newPost) => {
       const newPostObj = newPost.toObject();
       newPostObj.isLiked = userId ? newPost.likes.includes(userId) : false;
-      newPostObj.isDisliked = userId ? newPost.dislikes.includes(userId) : false;
-      
+      newPostObj.isDisliked = userId
+        ? newPost.dislikes.includes(userId)
+        : false;
+
       // Eğer post anonim ise author bilgilerini gizle
       if (newPostObj.isAnonymous) {
         newPostObj.author = {
@@ -217,10 +226,10 @@ export const getPostById = async (req, res) => {
           username: "Anonim Kullanıcı",
           firstName: "Anonim",
           lastName: "Kullanıcı",
-          profilePicture: null
+          profilePicture: null,
         };
       }
-      
+
       return newPostObj;
     });
 
@@ -230,21 +239,18 @@ export const getPostById = async (req, res) => {
         $match: {
           isApproved: true,
           _id: { $ne: post._id },
-          $or: [
-            { category: post.category },
-            { tags: { $in: post.tags } }
-          ]
-        }
+          $or: [{ category: post.category }, { tags: { $in: post.tags } }],
+        },
       },
       {
         $addFields: {
           similarityScore: {
             $add: [
               { $cond: [{ $eq: ["$category", post.category] }, 1, 0] },
-              { $size: { $setIntersection: ["$tags", post.tags] } }
-            ]
-          }
-        }
+              { $size: { $setIntersection: ["$tags", post.tags] } },
+            ],
+          },
+        },
       },
       { $sort: { similarityScore: -1, createdAt: -1 } },
       { $limit: 3 },
@@ -255,22 +261,33 @@ export const getPostById = async (req, res) => {
           foreignField: "_id",
           as: "author",
           pipeline: [
-            { $project: { username: 1, firstName: 1, lastName: 1, profilePicture: 1 } }
-          ]
-        }
+            {
+              $project: {
+                username: 1,
+                firstName: 1,
+                lastName: 1,
+                profilePicture: 1,
+              },
+            },
+          ],
+        },
       },
-      { $unwind: "$author" }
+      { $unwind: "$author" },
     ]);
 
     // similarPosts için isLiked ve isDisliked ekle
-    const similarPostsWithLikes = similarPosts.map(similarPost => {
+    const similarPostsWithLikes = similarPosts.map((similarPost) => {
       const similarPostObj = { ...similarPost };
       // ObjectId'leri string'e çevirip kontrol et
-      const likesStringIds = similarPost.likes.map(id => id.toString());
-      const dislikesStringIds = similarPost.dislikes.map(id => id.toString());
-      similarPostObj.isLiked = userId ? likesStringIds.includes(userId.toString()) : false;
-      similarPostObj.isDisliked = userId ? dislikesStringIds.includes(userId.toString()) : false;
-      
+      const likesStringIds = similarPost.likes.map((id) => id.toString());
+      const dislikesStringIds = similarPost.dislikes.map((id) => id.toString());
+      similarPostObj.isLiked = userId
+        ? likesStringIds.includes(userId.toString())
+        : false;
+      similarPostObj.isDisliked = userId
+        ? dislikesStringIds.includes(userId.toString())
+        : false;
+
       // Eğer post anonim ise author bilgilerini gizle
       if (similarPostObj.isAnonymous) {
         similarPostObj.author = {
@@ -278,17 +295,17 @@ export const getPostById = async (req, res) => {
           username: "Anonim Kullanıcı",
           firstName: "Anonim",
           lastName: "Kullanıcı",
-          profilePicture: null
+          profilePicture: null,
         };
       }
-      
+
       return similarPostObj;
     });
 
     res.json({
       post: postObj,
       newPosts: newPostsWithLikes,
-      similarPosts: similarPostsWithLikes
+      similarPosts: similarPostsWithLikes,
     });
   } catch (error) {
     console.error("Post getirme hatası:", error);
@@ -497,9 +514,9 @@ export const getUserPosts = async (req, res) => {
     });
 
     // Post'ları map'leyerek anonim olanları gizle
-    const postsWithAnonymous = posts.map(post => {
+    const postsWithAnonymous = posts.map((post) => {
       const postObj = post.toObject();
-      
+
       // Eğer post anonim ise author bilgilerini gizle
       if (postObj.isAnonymous) {
         postObj.author = {
@@ -507,10 +524,10 @@ export const getUserPosts = async (req, res) => {
           username: "Anonim Kullanıcı",
           firstName: "Anonim",
           lastName: "Kullanıcı",
-          profilePicture: null
+          profilePicture: null,
         };
       }
-      
+
       return postObj;
     });
 

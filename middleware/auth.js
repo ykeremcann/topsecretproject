@@ -108,3 +108,24 @@ export const optionalAuth = async (req, res, next) => {
     next();
   }
 };
+
+
+
+//! ____
+
+export const optionalAuthOrAnonymous = async (req, res, next) => {
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.split(" ")[1];
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || "your-secret-key");
+      const user = await User.findById(decoded.userId).select("-password");
+      if (user && user.isActive) {
+        req.user = user;
+      }
+    } catch (e) {
+      // Token hatalıysa sessiz geç
+    }
+  }
+  next();
+};
