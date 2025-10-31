@@ -28,7 +28,7 @@ export const createPost = async (req, res) => {
     }
 
     const post = new Post({
-      author: req.user?._id || "00xanonymus", // veya sabit bir "anonim" user ID
+      author: req.user._id,
       title,
       content,
       category,
@@ -38,7 +38,6 @@ export const createPost = async (req, res) => {
       isSensitive: isSensitive || false,
       symptoms: symptoms || [],
       treatments: treatments || [],
-      isAnonymous: !req.user ? true : isAnonymous || false,
     });
 
     await post.save();
