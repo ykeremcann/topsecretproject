@@ -13,6 +13,9 @@ import { authenticateToken, optionalAuth } from "../middleware/auth.js";
 
 const router = express.Router();
 
+// Yeni endpoint: /api/comments
+router.get("/", optionalAuth, getAllComments);
+
 // POST /api/comments/:postId - Yorum oluştur
 router.post("/:postId", authenticateToken, validateComment, createComment);
 
