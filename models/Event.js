@@ -95,7 +95,7 @@ const eventSchema = new mongoose.Schema(
     organizerType: {
       type: String,
       required: [true, "Organizatör tipi gerekli"],
-      enum: ["government", "private", "ngo", "individual", "hospital", "university"],
+      enum: ["government", "private", "ngo", "individual", "hospital", "university","clinic","organization" ],
     },
     tags: [{
       type: String,
