@@ -321,3 +321,69 @@ export const reportComment = async (req, res) => {
     });
   }
 };
+
+export const getAllComments = async (req, res) => {
+  try {
+    const { postType, isAdmin } = req.query;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    // Filter nesnesini başlat
+    const filters = {
+      parentComment: null, // Sadece ana yorumları getir
+    };
+
+    // 1. Post Type Filtresi
+    const validPostType = postType || "Post";
+    if (!["Post", "Blog"].includes(validPostType)) {
+      return res.status(400).json({
+        message: "Geçersiz post türü. Post veya Blog olmalı.",
+      });
+    }
+    filters.postType = validPostType;
+
+    // 2. Onay Filtresi (Admin Yetkisi Kontrolü)
+    const isAdminRequest = isAdmin === "true"; // Servis katmanından bu şekilde geliyor
+
+    if (!isAdminRequest) {
+      // Admin değilse sadece onaylı yorumları getir
+      filters.isApproved = true;
+    }
+    // Admin ise (isAdmin=true), isApproved filtresini hiç eklemiyoruz,
+    // yani onaylı veya onaysız tüm yorumları getiriyoruz.
+
+    // 3. Yorumları Çekme
+    const comments = await Comment.find(filters)
+      .populate("author", "username firstName lastName profilePicture")
+      .populate({
+        path: "replies",
+        populate: {
+          path: "author",
+          select: "username firstName lastName profilePicture",
+        },
+      })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    // 4. Toplam Yorum Sayısını Hesaplama
+    const total = await Comment.countDocuments(filters);
+
+    res.json({
+      comments,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+        totalComments: total,
+        hasNext: page * limit < total,
+        hasPrev: page > 1,
+      },
+    });
+  } catch (error) {
+    console.error("Tüm yorumları getirme hatası (getAllComments):", error);
+    res.status(500).json({
+      message: "Tüm yorumlar alınırken hata oluştu",
+    });
+  }
+};
