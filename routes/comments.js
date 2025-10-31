@@ -7,6 +7,7 @@ import {
   toggleLike,
   toggleDislike,
   reportComment,
+  getAllComments,
 } from "../controllers/commentController.js";
 import { validateComment } from "../middleware/validation.js";
 import { authenticateToken, optionalAuth } from "../middleware/auth.js";
