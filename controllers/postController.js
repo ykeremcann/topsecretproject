@@ -1,5 +1,6 @@
 import Post from "../models/Post.js";
 import User from "../models/User.js";
+import Comment from "../models/Comment.js";
 
 // Post oluştur
 export const createPost = async (req, res) => {
@@ -109,12 +110,13 @@ export const getAllPosts = async (req, res) => {
     const showAnonymousAuthors =
       isAdmin === "true" && req.user?.role === "admin";
 
-    // Her post için isLiked ve isDisliked alanlarını ekle
-    const postsWithLikes = posts.map((post) => {
+
+    // Her post için isLiked, isDisliked ve commentCount alanlarını ekle
+    const postsWithExtras = await Promise.all(posts.map(async (post) => {
       const postObj = post.toObject();
       postObj.isLiked = userId ? post.likes.includes(userId) : false;
       postObj.isDisliked = userId ? post.dislikes.includes(userId) : false;
-
+      postObj.commentCount = await Comment.countDocuments({ postOrBlog: post._id, postType: "Post", isApproved: true });
       // Eğer post anonim ise ve admin değilse author bilgilerini gizle
       if (postObj.isAnonymous && !showAnonymousAuthors) {
         postObj.author = {
@@ -125,9 +127,8 @@ export const getAllPosts = async (req, res) => {
           profilePicture: null,
         };
       }
-
       return postObj;
-    });
+    }));
 
     const total = await Post.countDocuments(query);
 
@@ -147,7 +148,7 @@ export const getAllPosts = async (req, res) => {
     ]);
 
     res.json({
-      posts: postsWithLikes,
+      posts: postsWithExtras,
       pagination: {
         currentPage: page,
         totalPages: Math.ceil(total / limit),
