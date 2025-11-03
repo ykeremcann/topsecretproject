@@ -29,9 +29,11 @@ const PORT = process.env.PORT || 5000;
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 dakika"
-  max: 100, // IP başına maksimum 100 istek
+  max: 10000, // IP başına maksimum 100 istek
   message: "Çok fazla istek gönderildi, lütfen daha sonra tekrar deneyin.",
 });
+
+// ! RATE LIMITER TEST İÇİN KAPALI
 
 // Middleware
 app.use(helmet());
