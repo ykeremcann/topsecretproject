@@ -116,6 +116,7 @@ const postSchema = new mongoose.Schema(
   }
 );
 
+
 // Virtual field for like count
 postSchema.virtual("likeCount").get(function () {
   return this.likes ? this.likes.length : 0;
@@ -133,6 +134,10 @@ postSchema.virtual("commentCount", {
   foreignField: "post",
   count: true,
 });
+
+// Virtual alanların JSON ve object çıktısında görünmesi için ayar
+postSchema.set('toObject', { virtuals: true });
+postSchema.set('toJSON', { virtuals: true });
 
 // Slug oluşturma middleware
 postSchema.pre('save', async function (next) {
