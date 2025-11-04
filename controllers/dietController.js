@@ -116,14 +116,6 @@ export const createDiet = async (req, res) => {
       });
     }
 
-    // startWeightKg zorunlu kontrolü
-    if (!startWeightKg) {
-      return res.status(400).json({
-        success: false,
-        message: "Başlangıç kilosu (startWeightKg) zorunludur",
-      });
-    }
-
     const dietData = {
       user: userId,
       name,
@@ -178,14 +170,6 @@ export const updateDiet = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Özel periyot seçildi ancak customPeriod girilmedi",
-      });
-    }
-
-    // Eğer startWeightKg güncelleniyorsa ve boş değilse kontrol et
-    if (updateData.hasOwnProperty('startWeightKg') && !updateData.startWeightKg) {
-      return res.status(400).json({
-        success: false,
-        message: "Başlangıç kilosu (startWeightKg) zorunludur",
       });
     }
     const diet = await Diet.findOneAndUpdate(

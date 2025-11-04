@@ -26,7 +26,7 @@ const DietSchema = new mongoose.Schema(
     
     // Hedef Metrikler
     targetCalories: { type: Number }, // Günlük hedeflenen kalori miktarı
-    startWeightKg: { type: Number, required: true }, // Diyete başlarken ki kilo (zorunlu)
+    startWeightKg: { type: Number }, // Diyete başlarken ki kilo (artık zorunlu değil)
     targetWeightKg: { type: Number }, // Hedeflenen kilo
     startBodyFatPercentage: { type: Number }, // Başlangıç yağ oranı
     targetBodyFatPercentage: { type: Number }, // Hedeflenen yağ oranı
