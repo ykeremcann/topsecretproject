@@ -99,6 +99,7 @@ export const getAllPosts = async (req, res) => {
 
     const posts = await Post.find(query)
       .populate("author", "username firstName lastName profilePicture")
+      .populate("reports.userId", "username firstName lastName")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
@@ -466,7 +467,7 @@ export const toggleDislike = async (req, res) => {
 // Post raporla
 export const reportPost = async (req, res) => {
   try {
-    const { reason } = req.body;
+    const { reason, description } = req.body;
 
     const post = await Post.findById(req.params.postId);
 
@@ -476,12 +477,33 @@ export const reportPost = async (req, res) => {
       });
     }
 
-    post.reportCount += 1;
+    // Kullanıcının daha önce bu postu raporlayıp raporlamadığını kontrol et
+    const existingReport = post.reports.find(
+      (report) => report.userId.toString() === req.user._id.toString()
+    );
+
+    if (existingReport) {
+      return res.status(400).json({
+        message: "Bu postu zaten raporladınız",
+      });
+    }
+
+    // Yeni rapor ekle
+    post.reports.push({
+      userId: req.user._id,
+      reason,
+      description: description || "",
+      reportedAt: new Date(),
+    });
+
+    post.reportCount = post.reports.length;
     post.isReported = true;
+    
     await post.save();
 
     res.json({
       message: "Post başarıyla raporlandı",
+      reportCount: post.reportCount,
     });
   } catch (error) {
     console.error("Post raporlama hatası:", error);
