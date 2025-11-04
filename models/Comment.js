@@ -50,6 +50,34 @@ const commentSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    reports: [
+      {
+        userId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+          required: true,
+        },
+        reason: {
+          type: String,
+          required: true,
+          enum: [
+            "spam",
+            "inappropriate",
+            "harassment",
+            "false_information",
+            "other",
+          ],
+        },
+        description: {
+          type: String,
+          maxlength: [500, "Açıklama en fazla 500 karakter olabilir"],
+        },
+        reportedAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
     parentComment: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Comment",

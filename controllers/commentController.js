@@ -108,6 +108,7 @@ export const getPostComments = async (req, res) => {
       isApproved: true,
     })
       .populate("author", "username firstName lastName profilePicture")
+      .populate("reports.userId", "username firstName lastName")
       .populate({
         path: "replies",
         populate: {
@@ -296,7 +297,7 @@ export const toggleDislike = async (req, res) => {
 // Yorum raporla
 export const reportComment = async (req, res) => {
   try {
-    const { reason } = req.body;
+    const { reason, description } = req.body;
     const { commentId } = req.params;
 
     const comment = await Comment.findById(commentId);
@@ -307,12 +308,33 @@ export const reportComment = async (req, res) => {
       });
     }
 
-    comment.reportCount += 1;
+    // Kullanıcının daha önce bu yorumu raporlayıp raporlamadığını kontrol et
+    const existingReport = comment.reports.find(
+      (report) => report.userId.toString() === req.user._id.toString()
+    );
+
+    if (existingReport) {
+      return res.status(400).json({
+        message: "Bu yorumu zaten raporladınız",
+      });
+    }
+
+    // Yeni rapor ekle
+    comment.reports.push({
+      userId: req.user._id,
+      reason,
+      description: description || "",
+      reportedAt: new Date(),
+    });
+
+    comment.reportCount = comment.reports.length;
     comment.isReported = true;
+    
     await comment.save();
 
     res.json({
       message: "Yorum başarıyla raporlandı",
+      reportCount: comment.reportCount,
     });
   } catch (error) {
     console.error("Yorum raporlama hatası:", error);
@@ -356,6 +378,7 @@ export const getAllComments = async (req, res) => {
     // 3. Yorumları Çekme
     const comments = await Comment.find(filters)
       .populate("author", "username firstName lastName profilePicture")
+      .populate("reports.userId", "username firstName lastName")
       .populate({
         path: "replies",
         populate: {
