@@ -380,6 +380,10 @@ export const getAllComments = async (req, res) => {
       .populate("author", "username firstName lastName profilePicture")
       .populate("reports.userId", "username firstName lastName")
       .populate({
+        path: "postOrBlog",
+        select: "title _id",
+      })
+      .populate({
         path: "replies",
         populate: {
           path: "author",
