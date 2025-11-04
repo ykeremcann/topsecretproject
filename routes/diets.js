@@ -5,7 +5,7 @@ import {
   createDiet,
   updateDiet,
   deleteDiet,
-  completeDiet,
+  logDietProgress,
   toggleDietStatus,
   getUserDietStats,
 } from "../controllers/dietController.js";
@@ -26,7 +26,7 @@ router.get("/stats", getUserDietStats);
 router.post("/", validateDiet, createDiet);
 router.put("/:id", validateDiet, updateDiet);
 router.delete("/:id", deleteDiet);
-router.post("/:id/complete", validateDietCompletion, completeDiet);
+router.post("/:id/log-progress", validateDietCompletion, logDietProgress);
 router.patch("/:id/toggle", toggleDietStatus);
 
 // PARAMETRİK route EN SONDA olmalı

@@ -93,15 +93,37 @@ export const createDiet = async (req, res) => {
         errors: errors.array(),
       });
     }
-    const { name, description, duration, period, customPeriod, startDate } =
-      req.body;
+    const { 
+      name, 
+      description, 
+      duration, 
+      period, 
+      customPeriod, 
+      startDate,
+      targetCalories,
+      startWeightKg,
+      targetWeightKg,
+      startBodyFatPercentage,
+      targetBodyFatPercentage,
+      macroNutrients
+    } = req.body;
     const userId = req.user.id;
+    
     if (period === "custom" && !customPeriod) {
       return res.status(400).json({
         success: false,
         message: "Özel periyot seçildi ancak customPeriod girilmedi",
       });
     }
+
+    // startWeightKg zorunlu kontrolü
+    if (!startWeightKg) {
+      return res.status(400).json({
+        success: false,
+        message: "Başlangıç kilosu (startWeightKg) zorunludur",
+      });
+    }
+
     const dietData = {
       user: userId,
       name,
@@ -109,6 +131,12 @@ export const createDiet = async (req, res) => {
       duration,
       period,
       startDate,
+      startWeightKg,
+      targetCalories,
+      targetWeightKg,
+      startBodyFatPercentage,
+      targetBodyFatPercentage,
+      macroNutrients,
     };
     if (period === "custom") {
       dietData.customPeriod = customPeriod;
@@ -145,10 +173,19 @@ export const updateDiet = async (req, res) => {
     const { id } = req.params;
     const userId = req.user.id;
     const updateData = req.body;
+    
     if (updateData.period === "custom" && !updateData.customPeriod) {
       return res.status(400).json({
         success: false,
         message: "Özel periyot seçildi ancak customPeriod girilmedi",
+      });
+    }
+
+    // Eğer startWeightKg güncelleniyorsa ve boş değilse kontrol et
+    if (updateData.hasOwnProperty('startWeightKg') && !updateData.startWeightKg) {
+      return res.status(400).json({
+        success: false,
+        message: "Başlangıç kilosu (startWeightKg) zorunludur",
       });
     }
     const diet = await Diet.findOneAndUpdate(
@@ -203,8 +240,8 @@ export const deleteDiet = async (req, res) => {
   }
 };
 
-// Diyeti tamamla
-export const completeDiet = async (req, res) => {
+// Diyet ilerleme kaydı
+export const logDietProgress = async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -215,7 +252,7 @@ export const completeDiet = async (req, res) => {
       });
     }
     const { id } = req.params;
-    const { notes } = req.body;
+    const { notes, currentWeightKg, currentBodyFatPercentage, consumedCalories } = req.body;
     const userId = req.user.id;
     const diet = await Diet.findOne({ _id: id, user: userId });
     if (!diet) {
@@ -226,31 +263,40 @@ export const completeDiet = async (req, res) => {
     }
     const today = new Date();
     const todayStr = today.toISOString().split("T")[0];
-    const alreadyCompleted = diet.completionHistory.some((record) => {
+    const alreadyLogged = diet.progressLog.some((record) => {
       const recordDate = new Date(record.completedAt)
         .toISOString()
         .split("T")[0];
       return recordDate === todayStr;
     });
-    if (alreadyCompleted) {
+    if (alreadyLogged) {
       return res.status(400).json({
         success: false,
-        message: "Bugün zaten tamamlandı",
+        message: "Bugün zaten kayıt girildi",
       });
     }
-    diet.completionHistory.push({ completedAt: today, notes });
-    diet.completedCount = diet.completionHistory.length;
+    
+    const progressEntry = {
+      completedAt: today,
+      notes,
+      currentWeightKg,
+      currentBodyFatPercentage,
+      consumedCalories
+    };
+    
+    diet.progressLog.push(progressEntry);
+    diet.logCount = diet.progressLog.length;
     await diet.save();
     res.status(200).json({
       success: true,
-      message: "Diyet başarıyla tamamlandı",
+      message: "Diyet ilerlemesi başarıyla kaydedildi",
       data: diet,
     });
   } catch (error) {
-    console.error("Diyet tamamlama hatası:", error);
+    console.error("Diyet ilerleme kaydetme hatası:", error);
     res.status(500).json({
       success: false,
-      message: "Diyet tamamlanırken hata oluştu",
+      message: "Diyet ilerlemesi kaydedilirken hata oluştu",
       error: error.message,
     });
   }
@@ -290,23 +336,58 @@ export const getUserDietStats = async (req, res) => {
   try {
     const userId = req.user.id;
     const diets = await Diet.find({ user: userId });
+    
+    // En son kilo kaydını bul
+    let currentWeight = null;
+    let latestWeightRecord = null;
+    
+    diets.forEach((diet) => {
+      if (diet.progressLog && diet.progressLog.length > 0) {
+        const sortedLogs = diet.progressLog
+          .filter(log => log.currentWeightKg)
+          .sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt));
+        
+        if (sortedLogs.length > 0) {
+          if (!latestWeightRecord || 
+              new Date(sortedLogs[0].completedAt) > new Date(latestWeightRecord.completedAt)) {
+            latestWeightRecord = sortedLogs[0];
+            currentWeight = sortedLogs[0].currentWeightKg;
+          }
+        }
+      }
+    });
+
+    // Ortalama başlangıç kilosu (eğer currentWeight yoksa)
+    const averageStartWeight = diets.length > 0 
+      ? diets.reduce((acc, d) => acc + (d.startWeightKg || 0), 0) / diets.length 
+      : 0;
+
+    const weightChange = currentWeight && diets.length > 0 
+      ? currentWeight - averageStartWeight 
+      : 0;
+
     const stats = {
       totalDiets: diets.length,
       activeDiets: diets.filter((d) => d.isActive).length,
-      totalCompletions: diets.reduce(
-        (acc, d) => acc + (d.completionHistory?.length || 0),
+      totalLogEntries: diets.reduce(
+        (acc, d) => acc + (d.progressLog?.length || 0),
         0
       ),
+      currentWeight,
+      weightChange,
       longestStreak: 0,
     };
+    
+    // En uzun streak hesapla (progressLog kullanarak)
     diets.forEach((diet) => {
       if (
-        diet.completionHistory &&
-        diet.completionHistory.length > stats.longestStreak
+        diet.progressLog &&
+        diet.progressLog.length > stats.longestStreak
       ) {
-        stats.longestStreak = diet.completionHistory.length;
+        stats.longestStreak = diet.progressLog.length;
       }
     });
+    
     res.status(200).json({
       success: true,
       data: stats,
