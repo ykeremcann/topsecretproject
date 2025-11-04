@@ -1,6 +1,8 @@
 import Comment from "../models/Comment.js";
 import Post from "../models/Post.js";
 import Blog from "../models/Blog.js";
+import Post from "../models/Post.js";
+import Blog from "../models/Blog.js";
 import { validateComment } from "../middleware/validation.js";
 
 // Yorum oluştur
@@ -120,6 +122,23 @@ export const getPostComments = async (req, res) => {
       .skip(skip)
       .limit(limit);
 
+    // PostOrBlog için dinamik populate
+    const populatedComments = await Promise.all(
+      comments.map(async (comment) => {
+        let populatedComment = comment.toObject();
+        
+        if (comment.postType === "Post") {
+          const post = await Post.findById(comment.postOrBlog).select("title _id");
+          populatedComment.postOrBlog = post;
+        } else if (comment.postType === "Blog") {
+          const blog = await Blog.findById(comment.postOrBlog).select("title _id");
+          populatedComment.postOrBlog = blog;
+        }
+        
+        return populatedComment;
+      })
+    );
+
     const total = await Comment.countDocuments({
       postOrBlog: postId,
       postType: validPostType,
@@ -128,7 +147,7 @@ export const getPostComments = async (req, res) => {
     });
 
     res.json({
-      comments,
+      comments: populatedComments,
       pagination: {
         currentPage: page,
         totalPages: Math.ceil(total / limit),
@@ -380,10 +399,6 @@ export const getAllComments = async (req, res) => {
       .populate("author", "username firstName lastName profilePicture")
       .populate("reports.userId", "username firstName lastName")
       .populate({
-        path: "postOrBlog",
-        select: "title _id",
-      })
-      .populate({
         path: "replies",
         populate: {
           path: "author",
@@ -394,11 +409,28 @@ export const getAllComments = async (req, res) => {
       .skip(skip)
       .limit(limit);
 
+    // PostOrBlog için dinamik populate
+    const populatedComments = await Promise.all(
+      comments.map(async (comment) => {
+        let populatedComment = comment.toObject();
+        
+        if (comment.postType === "Post") {
+          const post = await Post.findById(comment.postOrBlog).select("title _id");
+          populatedComment.postOrBlog = post;
+        } else if (comment.postType === "Blog") {
+          const blog = await Blog.findById(comment.postOrBlog).select("title _id");
+          populatedComment.postOrBlog = blog;
+        }
+        
+        return populatedComment;
+      })
+    );
+
     // 4. Toplam Yorum Sayısını Hesaplama
     const total = await Comment.countDocuments(filters);
 
     res.json({
-      comments,
+      comments: populatedComments,
       pagination: {
         currentPage: page,
         totalPages: Math.ceil(total / limit),
