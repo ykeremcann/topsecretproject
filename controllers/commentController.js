@@ -6,8 +6,10 @@ import { validateComment } from "../middleware/validation.js";
 // Yorum oluştur
 export const createComment = async (req, res) => {
   try {
-    const { content, isAnonymous, parentComment, postType } = req.body;
+    const { content, isAnonymous, parentCommentId, postType } = req.body;
     const { postId } = req.params;
+
+    console.log("Creating comment with data:", { content, isAnonymous, parentCommentId, postType, postId });
 
     // PostType'ı kontrol et (Post veya Blog)
     const validPostType = postType || "Post";
@@ -38,14 +40,14 @@ export const createComment = async (req, res) => {
       author: req.user._id,
       content,
       isAnonymous: isAnonymous || false,
-      parentComment: parentComment || null,
+      parentComment: parentCommentId || null,
     });
 
     await comment.save();
 
     // Parent comment varsa, replies array'ine ekle
-    if (parentComment) {
-      await Comment.findByIdAndUpdate(parentComment, {
+    if (parentCommentId) {
+      await Comment.findByIdAndUpdate(parentCommentId, {
         $addToSet: { replies: comment._id },
       });
     }
