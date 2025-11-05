@@ -651,30 +651,108 @@ export const getApprovedDoctors = async (req, res) => {
 export const getApprovedDoctorByUsername = async (req, res) => {
   try {
     const { username } = req.params;
+    const currentUserId = req.user?._id; // Optional, for checking follow status
 
-    // Expert (onaylanmış doktor) filtrelemesi
-    const query = {
+    const expert = await User.findOne({
+      username,
       role: "doctor",
-      "doctorInfo.approvalStatus": "approved",
-      isActive: true,
-      username: username,
-    };
-
-    const doctor = await User.findOne(query)
+      "doctorInfo.approvalStatus": "approved"
+    })
       .select("-password")
       .populate("doctorInfo.approvedBy", "username firstName lastName");
 
-    if (!doctor) {
+    if (!expert) {
       return res.status(404).json({
-        message: "Onaylanmış doktor bulunamadı",
+        message: "Uzman bulunamadı"
       });
     }
 
-    res.json({ expert: doctor });
+    // Check if current user is following this expert
+    let isFollowing = false;
+    if (currentUserId) {
+      isFollowing = expert.followers.includes(currentUserId);
+    }
+
+    // Add isFollowing to the response
+    const expertData = {
+      ...expert.toObject(),
+      isFollowing
+    };
+
+    res.json({
+      expert: expertData
+    });
   } catch (error) {
-    console.error("Onaylanmış doktoru username ile getirme hatası:", error);
+    console.error("Uzman getirme hatası:", error);
     res.status(500).json({
-      message: "Doktor bilgileri alınırken hata oluştu",
+      message: "Uzman bilgileri alınırken hata oluştu"
+    });
+  }
+};
+
+// Kullanıcı takip et/bırak
+export const toggleFollow = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const currentUserId = req.user._id;
+
+    // Kendini takip etmeyi engelle
+    if (userId === currentUserId.toString()) {
+      return res.status(400).json({
+        message: "Kendinizi takip edemezsiniz"
+      });
+    }
+
+    // Takip edilecek kullanıcıyı bul
+    const userToFollow = await User.findById(userId);
+    if (!userToFollow) {
+      return res.status(404).json({
+        message: "Kullanıcı bulunamadı"
+      });
+    }
+
+    // Mevcut kullanıcıyı bul
+    const currentUser = await User.findById(currentUserId);
+    if (!currentUser) {
+      return res.status(404).json({
+        message: "Oturum hatası"
+      });
+    }
+
+    // Takip durumunu kontrol et
+    const isAlreadyFollowing = userToFollow.followers.includes(currentUserId);
+
+    if (isAlreadyFollowing) {
+      // Takibi bırak
+      userToFollow.followers.pull(currentUserId);
+      currentUser.following.pull(userId);
+      
+      await userToFollow.save();
+      await currentUser.save();
+
+      res.json({
+        message: "Takip bırakıldı",
+        isFollowing: false,
+        followersCount: userToFollow.followers.length
+      });
+    } else {
+      // Takip et
+      userToFollow.followers.push(currentUserId);
+      currentUser.following.push(userId);
+      
+      await userToFollow.save();
+      await currentUser.save();
+
+      res.json({
+        message: "Kullanıcı takip edildi",
+        isFollowing: true,
+        followersCount: userToFollow.followers.length
+      });
+    }
+  } catch (error) {
+    console.error("Takip işlemi hatası:", error);
+    res.status(500).json({
+      message: "Takip işlemi sırasında hata oluştu"
     });
   }
 };

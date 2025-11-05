@@ -109,6 +109,15 @@ const userSchema = new mongoose.Schema(
     lastLogin: {
       type: Date,
     },
+    // Follow sistemi
+    followers: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User"
+    }],
+    following: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User"
+    }],
   },
   {
     timestamps: true,
@@ -164,6 +173,20 @@ userSchema.methods.toJSON = function () {
 userSchema.virtual("fullName").get(function () {
   return `${this.firstName} ${this.lastName}`;
 });
+
+// Virtual field for followers count
+userSchema.virtual("followersCount").get(function () {
+  return this.followers ? this.followers.length : 0;
+});
+
+// Virtual field for following count
+userSchema.virtual("followingCount").get(function () {
+  return this.following ? this.following.length : 0;
+});
+
+// Virtual field'ları JSON'a dahil et
+userSchema.set('toJSON', { virtuals: true });
+userSchema.set('toObject', { virtuals: true });
 
 // Index'ler (email ve username zaten unique: true ile otomatik index'leniyor)
 userSchema.index({ role: 1 });

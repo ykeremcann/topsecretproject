@@ -8,13 +8,15 @@ import {
   checkDoctorApprovalStatus,
   getApprovedDoctors,
   updateUserById,
-  getApprovedDoctorByUsername
+  getApprovedDoctorByUsername,
+  toggleFollow
 } from "../controllers/userController.js";
 import { validateUserUpdate } from "../middleware/validation.js";
 import {
   authenticateToken,
   requireAdmin,
   requireOwnershipOrAdmin,
+  optionalAuth,
 } from "../middleware/auth.js";
 
 const router = express.Router();
@@ -35,7 +37,7 @@ router.get("/experts", getApprovedDoctors);
 router.get("/doctor/approval-status", authenticateToken, checkDoctorApprovalStatus);
 
 // GET /api/users/experts/:username - Onaylanmış doktoru username ile getir
-router.get("/experts/:username", getApprovedDoctorByUsername);
+router.get("/experts/:username", optionalAuth, getApprovedDoctorByUsername);
 
 // GET /api/users/:userId/stats - Kullanıcı istatistikleri
 router.get("/:userId/stats", getUserStats);
@@ -45,5 +47,8 @@ router.get("/:userId", getUserById);
 
 // PUT /api/users/profile - Profil güncelleme
 router.put("/profile", authenticateToken, validateUserUpdate, updateUser);
+
+// POST /api/users/:userId/follow - Kullanıcı takip et/bırak
+router.post("/:userId/follow", authenticateToken, toggleFollow);
 
 export default router;
