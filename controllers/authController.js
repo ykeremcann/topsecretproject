@@ -242,7 +242,6 @@ export const getProfile = async (req, res) => {
       .select("title content category createdAt likes dislikes views images isAnonymous")
       .populate("author", "username firstName lastName profilePicture role")
       .sort({ createdAt: -1 })
-      .limit(3);
 
     const totalPosts = await Post.countDocuments({ author: req.user._id, isApproved: true });
 
@@ -251,7 +250,7 @@ export const getProfile = async (req, res) => {
       .select("content postType postOrBlog createdAt likes isAnonymous")
       .populate("author", "username firstName lastName profilePicture role")
       .sort({ createdAt: -1 })
-      .limit(3);
+
 
     const totalComments = await Comment.countDocuments({ author: req.user._id });
 
@@ -260,7 +259,7 @@ export const getProfile = async (req, res) => {
       .select("title content category createdAt author images")
       .populate("author", "username firstName lastName profilePicture role")
       .sort({ createdAt: -1 })
-      .limit(3);
+
 
     const totalLikedPosts = await Post.countDocuments({ likes: req.user._id, isApproved: true });
 
@@ -283,7 +282,7 @@ export const getProfile = async (req, res) => {
         .select("title excerpt content category isPublished isFeatured createdAt likes dislikes views featuredImage images readingTime")
         .populate("author", "username firstName lastName profilePicture role doctorInfo")
         .sort({ createdAt: -1 })
-        .limit(3);
+
 
       const totalBlogs = await Blog.countDocuments({ author: req.user._id });
       const publishedBlogs = await Blog.countDocuments({ 
@@ -301,7 +300,7 @@ export const getProfile = async (req, res) => {
       .select("title description category date endDate location status currentParticipants maxParticipants image instructor organizer isOnline price")
       .populate("authorId", "username firstName lastName profilePicture role")
       .sort({ date: -1 })
-      .limit(3);
+
 
     const totalCreatedEvents = await Event.countDocuments({ authorId: req.user._id });
 
@@ -313,7 +312,6 @@ export const getProfile = async (req, res) => {
       .select("title description category date endDate location status currentParticipants maxParticipants image instructor organizer isOnline price")
       .populate("authorId", "username firstName lastName profilePicture role")
       .sort({ date: -1 }) // Tarihe göre azalan sıralama (en yeni etkinlikler)
-      .limit(3);
 
     const totalParticipatingEvents = await Event.countDocuments({ 
       "participants.user": req.user._id,
@@ -323,7 +321,7 @@ export const getProfile = async (req, res) => {
     responseData.stats.totalCreatedEvents = totalCreatedEvents;
     responseData.stats.totalParticipatingEvents = totalParticipatingEvents;
     responseData.createdEvents = createdEvents;
-    responseData.participatingEvents = participatingEvents; // Katıldığı en güncel 3 etkinlik
+    responseData.participatingEvents = participatingEvents; // Katıldığı tüm etkinlikler
 
     res.json(responseData);
   } catch (error) {
