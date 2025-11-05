@@ -120,6 +120,30 @@ export const getPostComments = async (req, res) => {
       .skip(skip)
       .limit(limit);
 
+    // Her comment için user'ın like/dislike durumunu ekle
+    const commentsWithUserStatus = comments.map((comment) => {
+      const commentObj = comment.toObject();
+      commentObj.isLiked = req.user ? comment.likes.includes(req.user._id) : false;
+      commentObj.isDisliked = req.user ? comment.dislikes.includes(req.user._id) : false;
+      commentObj.likesCount = comment.likes.length;
+      commentObj.dislikesCount = comment.dislikes.length;
+      commentObj.repliesCount = comment.replies.length;
+
+      // Replies için de aynı mantığı uygula
+      if (commentObj.replies && commentObj.replies.length > 0) {
+        commentObj.replies = commentObj.replies.map((reply) => {
+          const replyObj = typeof reply.toObject === 'function' ? reply.toObject() : reply;
+          replyObj.isLiked = req.user ? reply.likes && reply.likes.includes(req.user._id) : false;
+          replyObj.isDisliked = req.user ? reply.dislikes && reply.dislikes.includes(req.user._id) : false;
+          replyObj.likesCount = reply.likes ? reply.likes.length : 0;
+          replyObj.dislikesCount = reply.dislikes ? reply.dislikes.length : 0;
+          return replyObj;
+        });
+      }
+
+      return commentObj;
+    });
+
     const total = await Comment.countDocuments({
       postOrBlog: postId,
       postType: validPostType,
@@ -128,7 +152,7 @@ export const getPostComments = async (req, res) => {
     });
 
     res.json({
-      comments,
+      comments: commentsWithUserStatus,
       pagination: {
         currentPage: page,
         totalPages: Math.ceil(total / limit),
@@ -251,12 +275,18 @@ export const toggleLike = async (req, res) => {
       });
     }
 
+    const wasLiked = comment.likes.includes(req.user._id);
     await comment.toggleLike(req.user._id);
 
+    // Güncellenmiş comment'i tekrar yükle
+    const updatedComment = await Comment.findById(commentId);
+
     res.json({
-      message: "Beğeni durumu güncellendi",
-      likes: comment.likes.length,
-      dislikes: comment.dislikes.length,
+      message: wasLiked ? "Beğeni geri alındı" : "Yorum beğenildi",
+      isLiked: updatedComment.likes.includes(req.user._id),
+      isDisliked: updatedComment.dislikes.includes(req.user._id),
+      likesCount: updatedComment.likes.length,
+      dislikesCount: updatedComment.dislikes.length,
     });
   } catch (error) {
     console.error("Beğeni işlemi hatası:", error);
@@ -279,12 +309,18 @@ export const toggleDislike = async (req, res) => {
       });
     }
 
+    const wasDisliked = comment.dislikes.includes(req.user._id);
     await comment.toggleDislike(req.user._id);
 
+    // Güncellenmiş comment'i tekrar yükle
+    const updatedComment = await Comment.findById(commentId);
+
     res.json({
-      message: "Beğenmeme durumu güncellendi",
-      likes: comment.likes.length,
-      dislikes: comment.dislikes.length,
+      message: wasDisliked ? "Beğenmeme geri alındı" : "Yorum beğenilmedi",
+      isLiked: updatedComment.likes.includes(req.user._id),
+      isDisliked: updatedComment.dislikes.includes(req.user._id),
+      likesCount: updatedComment.likes.length,
+      dislikesCount: updatedComment.dislikes.length,
     });
   } catch (error) {
     console.error("Beğenmeme işlemi hatası:", error);

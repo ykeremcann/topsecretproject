@@ -22,7 +22,10 @@ export const getAllUsers = async (req, res) => {
     }
 
     // Doktor onay durumu filtresi (sadece doktorlar için)
-    if (doctorApprovalStatus && ["pending", "approved", "rejected"].includes(doctorApprovalStatus)) {
+    if (
+      doctorApprovalStatus &&
+      ["pending", "approved", "rejected"].includes(doctorApprovalStatus)
+    ) {
       query["doctorInfo.approvalStatus"] = doctorApprovalStatus;
     }
 
@@ -54,52 +57,64 @@ export const getAllUsers = async (req, res) => {
           _id: null,
           totalUsers: { $sum: 1 },
           totalPatients: {
-            $sum: { $cond: [{ $eq: ["$role", "patient"] }, 1, 0] }
+            $sum: { $cond: [{ $eq: ["$role", "patient"] }, 1, 0] },
           },
           totalDoctors: {
-            $sum: { $cond: [{ $eq: ["$role", "doctor"] }, 1, 0] }
+            $sum: { $cond: [{ $eq: ["$role", "doctor"] }, 1, 0] },
           },
           totalAdmins: {
-            $sum: { $cond: [{ $eq: ["$role", "admin"] }, 1, 0] }
+            $sum: { $cond: [{ $eq: ["$role", "admin"] }, 1, 0] },
           },
           pendingDoctors: {
-            $sum: { 
+            $sum: {
               $cond: [
-                { $and: [
-                  { $eq: ["$role", "doctor"] },
-                  { $eq: ["$doctorInfo.approvalStatus", "pending"] }
-                ]}, 1, 0
-              ]
-            }
+                {
+                  $and: [
+                    { $eq: ["$role", "doctor"] },
+                    { $eq: ["$doctorInfo.approvalStatus", "pending"] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
           },
           approvedDoctors: {
-            $sum: { 
+            $sum: {
               $cond: [
-                { $and: [
-                  { $eq: ["$role", "doctor"] },
-                  { $eq: ["$doctorInfo.approvalStatus", "approved"] }
-                ]}, 1, 0
-              ]
-            }
+                {
+                  $and: [
+                    { $eq: ["$role", "doctor"] },
+                    { $eq: ["$doctorInfo.approvalStatus", "approved"] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
           },
           rejectedDoctors: {
-            $sum: { 
+            $sum: {
               $cond: [
-                { $and: [
-                  { $eq: ["$role", "doctor"] },
-                  { $eq: ["$doctorInfo.approvalStatus", "rejected"] }
-                ]}, 1, 0
-              ]
-            }
+                {
+                  $and: [
+                    { $eq: ["$role", "doctor"] },
+                    { $eq: ["$doctorInfo.approvalStatus", "rejected"] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
           },
           activeUsers: {
-            $sum: { $cond: [{ $eq: ["$isActive", true] }, 1, 0] }
+            $sum: { $cond: [{ $eq: ["$isActive", true] }, 1, 0] },
           },
           inactiveUsers: {
-            $sum: { $cond: [{ $eq: ["$isActive", false] }, 1, 0] }
-          }
-        }
-      }
+            $sum: { $cond: [{ $eq: ["$isActive", false] }, 1, 0] },
+          },
+        },
+      },
     ]);
 
     res.json({
@@ -120,14 +135,14 @@ export const getAllUsers = async (req, res) => {
         approvedDoctors: 0,
         rejectedDoctors: 0,
         activeUsers: 0,
-        inactiveUsers: 0
+        inactiveUsers: 0,
       },
       filters: {
         role,
         isActive,
         doctorApprovalStatus,
-        search
-      }
+        search,
+      },
     });
   } catch (error) {
     console.error("Kullanıcıları getirme hatası:", error);
@@ -140,8 +155,7 @@ export const getAllUsers = async (req, res) => {
 // Kullanıcı detayını getir
 export const getUserById = async (req, res) => {
   try {
-    const user = await User.findById(req.params.userId)
-      .select("-password");
+    const user = await User.findById(req.params.userId).select("-password");
 
     if (!user) {
       return res.status(404).json({
@@ -173,8 +187,7 @@ export const updateUser = async (req, res) => {
     const user = await User.findByIdAndUpdate(req.user._id, updateData, {
       new: true,
       runValidators: true,
-    })
-      .select("-password");
+    }).select("-password");
 
     res.json({
       message: "Profil başarıyla güncellendi",
@@ -204,8 +217,7 @@ export const updateUserById = async (req, res) => {
     const user = await User.findByIdAndUpdate(userId, updateData, {
       new: true,
       runValidators: true,
-    })
-      .select("-password");
+    }).select("-password");
 
     res.json({
       message: "Profil başarıyla güncellendi",
@@ -217,8 +229,7 @@ export const updateUserById = async (req, res) => {
       message: "Profil güncellenirken hata oluştu",
     });
   }
-}
-
+};
 
 // Kullanıcı arama
 export const searchUsers = async (req, res) => {
@@ -282,9 +293,7 @@ export const getUserStats = async (req, res) => {
   try {
     const userId = req.params.userId || req.user._id;
 
-    const user = await User.findById(userId).select(
-      "createdAt"
-    );
+    const user = await User.findById(userId).select("createdAt");
 
     if (!user) {
       return res.status(404).json({
@@ -431,7 +440,8 @@ export const rejectDoctor = async (req, res) => {
     }
 
     doctor.doctorInfo.approvalStatus = "rejected";
-    doctor.doctorInfo.rejectionReason = rejectionReason || "Belirtilmemiş sebep";
+    doctor.doctorInfo.rejectionReason =
+      rejectionReason || "Belirtilmemiş sebep";
     doctor.doctorInfo.approvalDate = new Date();
     doctor.doctorInfo.approvedBy = req.user._id;
 
@@ -467,9 +477,7 @@ export const rejectDoctor = async (req, res) => {
 // Doktor onay durumunu kontrol et
 export const checkDoctorApprovalStatus = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).select(
-      "role doctorInfo"
-    );
+    const user = await User.findById(req.user._id).select("role doctorInfo");
 
     if (user.role !== "doctor") {
       return res.status(400).json({
@@ -646,7 +654,6 @@ export const getApprovedDoctors = async (req, res) => {
   }
 };
 
-
 // Onaylanmış tek bir doktoru username ile getir
 export const getApprovedDoctorByUsername = async (req, res) => {
   try {
@@ -656,14 +663,14 @@ export const getApprovedDoctorByUsername = async (req, res) => {
     const expert = await User.findOne({
       username,
       role: "doctor",
-      "doctorInfo.approvalStatus": "approved"
+      "doctorInfo.approvalStatus": "approved",
     })
       .select("-password")
       .populate("doctorInfo.approvedBy", "username firstName lastName");
 
     if (!expert) {
       return res.status(404).json({
-        message: "Uzman bulunamadı"
+        message: "Uzman bulunamadı",
       });
     }
 
@@ -676,16 +683,16 @@ export const getApprovedDoctorByUsername = async (req, res) => {
     // Add isFollowing to the response
     const expertData = {
       ...expert.toObject(),
-      isFollowing
+      isFollowing,
     };
 
     res.json({
-      expert: expertData
+      expert: expertData,
     });
   } catch (error) {
     console.error("Uzman getirme hatası:", error);
     res.status(500).json({
-      message: "Uzman bilgileri alınırken hata oluştu"
+      message: "Uzman bilgileri alınırken hata oluştu",
     });
   }
 };
@@ -699,7 +706,7 @@ export const toggleFollow = async (req, res) => {
     // Kendini takip etmeyi engelle
     if (userId === currentUserId.toString()) {
       return res.status(400).json({
-        message: "Kendinizi takip edemezsiniz"
+        message: "Kendinizi takip edemezsiniz",
       });
     }
 
@@ -707,7 +714,7 @@ export const toggleFollow = async (req, res) => {
     const userToFollow = await User.findById(userId);
     if (!userToFollow) {
       return res.status(404).json({
-        message: "Kullanıcı bulunamadı"
+        message: "Kullanıcı bulunamadı",
       });
     }
 
@@ -715,7 +722,7 @@ export const toggleFollow = async (req, res) => {
     const currentUser = await User.findById(currentUserId);
     if (!currentUser) {
       return res.status(404).json({
-        message: "Oturum hatası"
+        message: "Oturum hatası",
       });
     }
 
@@ -726,33 +733,33 @@ export const toggleFollow = async (req, res) => {
       // Takibi bırak
       userToFollow.followers.pull(currentUserId);
       currentUser.following.pull(userId);
-      
+
       await userToFollow.save();
       await currentUser.save();
 
       res.json({
         message: "Takip bırakıldı",
         isFollowing: false,
-        followersCount: userToFollow.followers.length
+        followersCount: userToFollow.followers.length,
       });
     } else {
       // Takip et
       userToFollow.followers.push(currentUserId);
       currentUser.following.push(userId);
-      
+
       await userToFollow.save();
       await currentUser.save();
 
       res.json({
         message: "Kullanıcı takip edildi",
         isFollowing: true,
-        followersCount: userToFollow.followers.length
+        followersCount: userToFollow.followers.length,
       });
     }
   } catch (error) {
     console.error("Takip işlemi hatası:", error);
     res.status(500).json({
-      message: "Takip işlemi sırasında hata oluştu"
+      message: "Takip işlemi sırasında hata oluştu",
     });
   }
 };
