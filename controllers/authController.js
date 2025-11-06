@@ -263,6 +263,50 @@ export const getProfile = async (req, res) => {
 
     const totalLikedPosts = await Post.countDocuments({ likes: req.user._id, isApproved: true });
 
+    // Kullanıcının postlarına yapılan yorumlar
+    const userPosts = await Post.find({ author: req.user._id, isApproved: true }).select("_id");
+    const userPostIds = userPosts.map(post => post._id);
+    
+    const commentsOnMyPosts = await Comment.find({ 
+      postOrBlog: { $in: userPostIds },
+      postType: "Post",
+      author: { $ne: req.user._id } // Kendi yorumlarını hariç tut
+    })
+      .select("content postType postOrBlog createdAt author")
+      .populate("author", "username firstName lastName profilePicture role")
+      .populate("postOrBlog", "title")
+      .sort({ createdAt: -1 })
+      .limit(10);
+
+    // Kullanıcının postlarına yapılan beğeniler
+    const likesOnMyPosts = await Post.find({ 
+      author: req.user._id, 
+      isApproved: true,
+      likes: { $exists: true, $ne: [] }
+    })
+      .select("title likes createdAt")
+      .populate("likes", "username firstName lastName profilePicture")
+      .sort({ createdAt: -1 })
+      .limit(10);
+
+    // Beğenileri flatten et (her beğeniyi ayrı bir obje olarak)
+    const flattenedLikes = [];
+    likesOnMyPosts.forEach(post => {
+      post.likes.forEach(user => {
+        flattenedLikes.push({
+          _id: `${post._id}_${user._id}`,
+          user: user,
+          post: { _id: post._id, title: post.title },
+          createdAt: post.createdAt // Post'un oluşturulma tarihi (like tarihi bulunamadığı için)
+        });
+      });
+    });
+
+    // En yeni beğenileri al
+    const recentLikesOnMyPosts = flattenedLikes
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .slice(0, 10);
+
     // Response objesi
     const responseData = {
       user,
@@ -274,6 +318,8 @@ export const getProfile = async (req, res) => {
       recentPosts: posts,
       recentComments: comments,
       recentLikedPosts: likedPosts,
+      commentsOnMyPosts: commentsOnMyPosts,
+      likesOnMyPosts: recentLikesOnMyPosts,
     };
 
     // Eğer doktor veya admin ise blog bilgilerini ekle
