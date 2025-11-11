@@ -327,7 +327,7 @@ export const validateEvent = [
     .trim(),
 
   body("organizerType")
-    .isIn(["individual", "organization", "hospital", "clinic"])
+    .isIn(["individual", "organization", "hospital", "clinic", "university", "government", "private", "ngo"])
     .withMessage("Geçerli bir organizatör türü seçin"),
 
   body("tags")
