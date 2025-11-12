@@ -102,6 +102,7 @@ export const getAllPosts = async (req, res) => {
 
     const posts = await Post.find(query)
       .populate("author", "username firstName lastName profilePicture")
+      .populate("event", "title date")
       .populate("reports.userId", "username firstName lastName")
       .sort({ createdAt: -1 })
       .skip(skip)
@@ -173,10 +174,9 @@ export const getAllPosts = async (req, res) => {
 // Post detayını getir
 export const getPostById = async (req, res) => {
   try {
-    const post = await Post.findById(req.params.postId).populate(
-      "author",
-      "username firstName lastName profilePicture"
-    );
+    const post = await Post.findById(req.params.postId)
+      .populate("author", "username firstName lastName profilePicture")
+      .populate("event", "title date");
 
     if (!post) {
       return res.status(404).json({
@@ -531,6 +531,7 @@ export const getUserPosts = async (req, res) => {
       isApproved: true,
     })
       .populate("author", "username firstName lastName profilePicture")
+      .populate("event", "title date")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
