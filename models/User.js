@@ -78,6 +78,10 @@ const userSchema = new mongoose.Schema(
         min: [0, "Deneyim yılı 0'dan küçük olamaz"],
         max: [50, "Deneyim yılı 50'den büyük olamaz"],
       },
+      showContactInfo: {
+        type: Boolean,
+        default: true,
+      },
     },
     profilePicture: {
       type: String,

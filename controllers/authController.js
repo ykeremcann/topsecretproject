@@ -21,7 +21,8 @@ export const register = async (req, res) => {
       location,
       specialization,
       hospital,
-      experience
+      experience,
+      showContactInfo
     } = req.body;
 
     // Email ve username kontrolü
@@ -57,6 +58,7 @@ export const register = async (req, res) => {
           specialization: specialization || "",
           hospital: hospital || "",
           experience: experience || 0,
+          showContactInfo: typeof showContactInfo === "boolean" ? showContactInfo : true,
         };
       }
     }
@@ -88,6 +90,7 @@ export const register = async (req, res) => {
         specialization: user.doctorInfo.specialization,
         hospital: user.doctorInfo.hospital,
         experience: user.doctorInfo.experience,
+        showContactInfo: user.doctorInfo.showContactInfo,
       };
     }
 
