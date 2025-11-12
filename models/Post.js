@@ -138,6 +138,12 @@ const postSchema = new mongoose.Schema(
       unique: true,
       lowercase: true,
     },
+    // Post ile ilişkili etkinlik (opsiyonel)
+    event: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Event",
+      required: false,
+    },
   },
   {
     timestamps: true,

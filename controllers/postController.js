@@ -15,6 +15,8 @@ export const createPost = async (req, res) => {
       isSensitive,
       symptoms,
       treatments,
+
+      event,
     } = req.body;
 
     // Eğer doktor ise onay durumunu kontrol et
@@ -39,6 +41,7 @@ export const createPost = async (req, res) => {
       isSensitive: isSensitive || false,
       symptoms: symptoms || [],
       treatments: treatments || [],
+      event: event || null,
     });
 
     await post.save();
@@ -349,16 +352,18 @@ export const updatePost = async (req, res) => {
       });
     }
 
-    const updateData = {};
-    if (title) updateData.title = title;
-    if (content) updateData.content = content;
-    if (category) updateData.category = category;
-    if (tags) updateData.tags = tags;
-    if (images) updateData.images = images;
-    if (isAnonymous !== undefined) updateData.isAnonymous = isAnonymous;
-    if (isSensitive !== undefined) updateData.isSensitive = isSensitive;
-    if (symptoms) updateData.symptoms = symptoms;
-    if (treatments) updateData.treatments = treatments;
+
+  const updateData = {};
+  if (title) updateData.title = title;
+  if (content) updateData.content = content;
+  if (category) updateData.category = category;
+  if (tags) updateData.tags = tags;
+  if (images) updateData.images = images;
+  if (isAnonymous !== undefined) updateData.isAnonymous = isAnonymous;
+  if (isSensitive !== undefined) updateData.isSensitive = isSensitive;
+  if (symptoms) updateData.symptoms = symptoms;
+  if (treatments) updateData.treatments = treatments;
+  if (req.body.event !== undefined) updateData.event = req.body.event;
 
     const updatedPost = await Post.findByIdAndUpdate(
       req.params.postId,
