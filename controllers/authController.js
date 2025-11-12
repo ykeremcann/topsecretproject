@@ -384,7 +384,7 @@ export const getProfile = async (req, res) => {
 // Kullanıcı profili güncelleme
 export const updateUser = async (req, res) => {
   try {
-    const { firstName, lastName, bio, dateOfBirth, profilePicture } = req.body;
+    const { firstName, lastName, bio, dateOfBirth, profilePicture, doctorInfo } = req.body;
 
     const updateData = {};
     if (firstName) updateData.firstName = firstName;
@@ -392,6 +392,20 @@ export const updateUser = async (req, res) => {
     if (bio !== undefined) updateData.bio = bio;
     if (dateOfBirth) updateData.dateOfBirth = dateOfBirth;
     if (profilePicture !== undefined) updateData.profilePicture = profilePicture;
+
+    // Eğer doctorInfo güncellenmek isteniyorsa mevcut doctorInfo ile birleştir
+    if (doctorInfo !== undefined) {
+      // Mevcut kullanıcıyı çek
+      const user = await User.findById(req.user._id);
+      if (user) {
+        updateData.doctorInfo = {
+          ...user.doctorInfo?.toObject?.() || user.doctorInfo || {},
+          ...doctorInfo
+        };
+      } else {
+        updateData.doctorInfo = doctorInfo;
+      }
+    }
 
     const user = await User.findByIdAndUpdate(req.user._id, updateData, {
       new: true,
