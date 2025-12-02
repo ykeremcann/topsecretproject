@@ -9,7 +9,8 @@ import {
   getApprovedDoctors,
   updateUserById,
   getApprovedDoctorByUsername,
-  toggleFollow
+  toggleFollow,
+  deleteUser
 } from "../controllers/userController.js";
 import { validateUserUpdate } from "../middleware/validation.js";
 import {
@@ -50,5 +51,8 @@ router.put("/profile", authenticateToken, validateUserUpdate, updateUser);
 
 // POST /api/users/:userId/follow - Kullanıcı takip et/bırak
 router.post("/:userId/follow", authenticateToken, toggleFollow);
+
+// DELETE /api/users/:userId - Kullanıcı sil (admin)
+router.delete("/:userId", authenticateToken, requireAdmin, deleteUser);
 
 export default router;
