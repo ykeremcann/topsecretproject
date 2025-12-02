@@ -5,6 +5,8 @@ import rateLimit from "express-rate-limit";
 import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
+import { createServer } from "http";
+import { Server } from "socket.io";
 import connectDB from "./config/database.js";
 import authRoutes from "./routes/auth.js";
 import userRoutes from "./routes/users.js";
@@ -16,7 +18,7 @@ import blogRoutes from "./routes/blogs.js";
 import uploadRoutes from "./routes/upload.js";
 import exerciseRoutes from "./routes/exercises.js";
 import dietRoutes from "./routes/diets.js";
-// import dietRoutes from "./routes/diets.js";
+import messageRoutes from "./routes/messages.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -24,7 +26,40 @@ const __dirname = path.dirname(__filename);
 dotenv.config();
 
 const app = express();
+const httpServer = createServer(app);
 const PORT = process.env.PORT || 5000;
+
+// Socket.IO Setup
+const io = new Server(httpServer, {
+  cors: {
+    origin: "*", // Allow all origins for now, matching Express CORS
+    methods: ["GET", "POST"],
+    credentials: true,
+  },
+});
+
+// Socket.IO Connection Handler
+io.on("connection", (socket) => {
+  console.log("A user connected:", socket.id);
+
+  // User joins their own room based on user ID
+  socket.on("join", (userId) => {
+    if (userId) {
+      socket.join(userId);
+      console.log(`User ${userId} joined their room`);
+    }
+  });
+
+  socket.on("disconnect", () => {
+    console.log("User disconnected:", socket.id);
+  });
+});
+
+// Make io available in routes
+app.use((req, res, next) => {
+  req.io = io;
+  next();
+});
 
 // Rate limiting
 const limiter = rateLimit({
@@ -80,7 +115,7 @@ app.use("/api/blogs", blogRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/exercises", exerciseRoutes);
 app.use("/api/diets", dietRoutes);
-// app.use("/api/diets", dietRoutes);
+app.use("/api/messages", messageRoutes);
 
 // Health check endpoint
 app.get("/api/health", (req, res) => {
@@ -108,9 +143,10 @@ app.use("*", (req, res) => {
 // Database bağlantısı ve server başlatma
 connectDB()
   .then(() => {
-    app.listen(PORT, () => {
+    httpServer.listen(PORT, () => {
       console.log(`🚀 Server ${PORT} portunda çalışıyor`);
       console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
+      console.log(`🔌 Socket.IO ready`);
     });
   })
   .catch((error) => {
