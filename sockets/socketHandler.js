@@ -8,8 +8,9 @@ export const handleSocketConnection = (io) => {
 
         // Join room based on user ID
         socket.on("join", (userId) => {
-            socket.join(userId);
-            console.log(`User ${userId} joined room ${userId}`);
+            const roomName = String(userId);
+            socket.join(roomName);
+            console.log(`User ${userId} joined room ${roomName}`);
         });
 
         // Handle sending messages via socket
@@ -68,7 +69,9 @@ export const handleSocketConnection = (io) => {
                 await newMessage.populate("sender", "firstName lastName profilePicture");
 
                 // Emit to receiver
-                io.to(receiverId).emit("receive_message", newMessage);
+                const targetRoom = String(receiverId);
+                console.log(`Emitting receive_message to room: ${targetRoom}`);
+                io.to(targetRoom).emit("receive_message", newMessage);
 
                 // Acknowledge sender
                 if (typeof callback === "function") {
