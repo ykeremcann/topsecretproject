@@ -13,7 +13,7 @@ export const handleSocketConnection = (io) => {
         });
 
         // Handle sending messages via socket
-        socket.on("send_message", async (data) => {
+        socket.on("send_message", async (data, callback) => {
             try {
                 const { senderId, receiverId, content } = data;
                 console.log("Socket send_message received:", data);
@@ -21,6 +21,7 @@ export const handleSocketConnection = (io) => {
                 // Validate input
                 if (!senderId || !receiverId || !content) {
                     console.error("Missing required fields for send_message");
+                    if (typeof callback === "function") callback({ status: "error", message: "Eksik bilgi" });
                     return;
                 }
 
@@ -69,15 +70,16 @@ export const handleSocketConnection = (io) => {
                 // Emit to receiver
                 io.to(receiverId).emit("receive_message", newMessage);
 
-                // Emit back to sender (confirmation/update UI)
-                // We emit 'message_sent' so the sender knows it succeeded and can update UI if not optimistic
-                // Or we can just emit 'receive_message' to sender too, but usually sender adds optimistically
-                // Let's emit 'receive_message' to sender as well to be consistent or a specific ack
-                socket.emit("message_sent", newMessage);
+                // Acknowledge sender
+                if (typeof callback === "function") {
+                    callback({ status: "ok", data: newMessage });
+                }
 
             } catch (error) {
                 console.error("Socket send_message error:", error);
-                socket.emit("message_error", { message: "Mesaj gönderilemedi" });
+                if (typeof callback === "function") {
+                    callback({ status: "error", message: "Mesaj gönderilemedi" });
+                }
             }
         });
 
