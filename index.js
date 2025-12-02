@@ -29,33 +29,22 @@ const app = express();
 const httpServer = createServer(app);
 const PORT = process.env.PORT || 5000;
 
+import { handleSocketConnection } from "./sockets/socketHandler.js";
+
 // Socket.IO Setup
 const io = new Server(httpServer, {
   cors: {
-    origin: "*", // Allow all origins for now, matching Express CORS
+    origin: "*", // Allow all origins for development
     methods: ["GET", "POST"],
+    allowedHeaders: ["Authorization"],
     credentials: true,
   },
 });
 
-// Socket.IO Connection Handler
-io.on("connection", (socket) => {
-  console.log("A user connected:", socket.id);
+// Initialize Socket Handler
+handleSocketConnection(io);
 
-  // User joins their own room based on user ID
-  socket.on("join", (userId) => {
-    if (userId) {
-      socket.join(userId);
-      console.log(`User ${userId} joined their room`);
-    }
-  });
-
-  socket.on("disconnect", () => {
-    console.log("User disconnected:", socket.id);
-  });
-});
-
-// Make io available in routes
+// Middleware to attach io to req (optional, if we still want to emit from controllers)
 app.use((req, res, next) => {
   req.io = io;
   next();
