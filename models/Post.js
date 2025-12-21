@@ -207,7 +207,7 @@ postSchema.index({ category: 1, createdAt: -1 });
 postSchema.index({ tags: 1 });
 postSchema.index({ isApproved: 1, createdAt: -1 });
 postSchema.index({ title: "text", content: "text" });
-postSchema.index({ slug: 1 }); // slug index'i eklendi
+// slug için unique: true zaten otomatik index oluşturuyor, manuel index gerekmez
 
 // Middleware to update view count
 postSchema.methods.incrementViews = function () {

@@ -3,6 +3,7 @@ import {
   createPost,
   getAllPosts,
   getPostById,
+  getPostBySlug,
   updatePost,
   deletePost,
   toggleLike,
@@ -21,7 +22,10 @@ router.post("/", authenticateToken, validatePost, createPost);
 // GET /api/posts - Tüm post'ları getir
 router.get("/", optionalAuth, getAllPosts);
 
-// GET /api/posts/:postId - Post detayı
+// GET /api/posts/slug/:slug - Post detayı (slug ile)
+router.get("/slug/:slug", optionalAuth, getPostBySlug);
+
+// GET /api/posts/:postId - Post detayı (ID ile)
 router.get("/:postId", optionalAuth, getPostById);
 
 // PUT /api/posts/:postId - Post güncelle

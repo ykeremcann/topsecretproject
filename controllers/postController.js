@@ -319,6 +319,154 @@ export const getPostById = async (req, res) => {
   }
 };
 
+// Slug ile post getir
+export const getPostBySlug = async (req, res) => {
+  try {
+    const post = await Post.findOne({ slug: req.params.slug })
+      .populate("author", "username firstName lastName profilePicture")
+      .populate("event", "title date");
+
+    if (!post) {
+      return res.status(404).json({
+        message: "Post bulunamadı",
+      });
+    }
+
+    // Görüntülenme sayısını artır
+    await post.incrementViews();
+
+    // Kullanıcı token'dan ID'sini al
+    const userId = req.user ? req.user._id : null;
+
+    // Post objesine isLiked ve isDisliked ekle
+    const postObj = post.toObject();
+    postObj.isLiked = userId ? post.likes.includes(userId) : false;
+    postObj.isDisliked = userId ? post.dislikes.includes(userId) : false;
+
+    // Eğer post anonim ise author bilgilerini gizle
+    if (postObj.isAnonymous) {
+      postObj.author = {
+        _id: null,
+        username: "Anonim Kullanıcı",
+        firstName: "Anonim",
+        lastName: "Kullanıcı",
+        profilePicture: null,
+      };
+    }
+
+    // En yeni 3 post'u getir (newPosts)
+    const newPosts = await Post.find({
+      isApproved: true,
+      _id: { $ne: post._id },
+    })
+      .populate("author", "username firstName lastName profilePicture")
+      .sort({ createdAt: -1 })
+      .limit(3);
+
+    // newPosts için isLiked ve isDisliked ekle
+    const newPostsWithLikes = newPosts.map((newPost) => {
+      const newPostObj = newPost.toObject();
+      newPostObj.isLiked = userId ? newPost.likes.includes(userId) : false;
+      newPostObj.isDisliked = userId
+        ? newPost.dislikes.includes(userId)
+        : false;
+
+      // Eğer post anonim ise author bilgilerini gizle
+      if (newPostObj.isAnonymous) {
+        newPostObj.author = {
+          _id: null,
+          username: "Anonim Kullanıcı",
+          firstName: "Anonim",
+          lastName: "Kullanıcı",
+          profilePicture: null,
+        };
+      }
+
+      return newPostObj;
+    });
+
+    // Benzer post'ları getir (kategori ve tag'e göre)
+    const similarPosts = await Post.aggregate([
+      {
+        $match: {
+          isApproved: true,
+          _id: { $ne: post._id },
+          $or: [{ category: post.category }, { tags: { $in: post.tags } }],
+        },
+      },
+      {
+        $addFields: {
+          similarityScore: {
+            $add: [
+              { $cond: [{ $eq: ["$category", post.category] }, 1, 0] },
+              { $size: { $setIntersection: ["$tags", post.tags] } },
+            ],
+          },
+        },
+      },
+      { $sort: { similarityScore: -1, createdAt: -1 } },
+      { $limit: 3 },
+      {
+        $lookup: {
+          from: "users",
+          localField: "author",
+          foreignField: "_id",
+          as: "author",
+          pipeline: [
+            {
+              $project: {
+                username: 1,
+                firstName: 1,
+                lastName: 1,
+                profilePicture: 1,
+              },
+            },
+          ],
+        },
+      },
+      { $unwind: "$author" },
+    ]);
+
+    // similarPosts için isLiked ve isDisliked ekle
+    const similarPostsWithLikes = similarPosts.map((similarPost) => {
+      const similarPostObj = { ...similarPost };
+      // ObjectId'leri string'e çevirip kontrol et
+      const likesStringIds = similarPost.likes.map((id) => id.toString());
+      const dislikesStringIds = similarPost.dislikes.map((id) => id.toString());
+      similarPostObj.isLiked = userId
+        ? likesStringIds.includes(userId.toString())
+        : false;
+      similarPostObj.isDisliked = userId
+        ? dislikesStringIds.includes(userId.toString())
+        : false;
+
+      // Eğer post anonim ise author bilgilerini gizle
+      if (similarPostObj.isAnonymous) {
+        similarPostObj.author = {
+          _id: null,
+          username: "Anonim Kullanıcı",
+          firstName: "Anonim",
+          lastName: "Kullanıcı",
+          profilePicture: null,
+        };
+      }
+
+      return similarPostObj;
+    });
+
+    res.json({
+      post: postObj,
+      newPosts: newPostsWithLikes,
+      similarPosts: similarPostsWithLikes,
+    });
+  } catch (error) {
+    console.error("Post getirme hatası:", error);
+    res.status(500).json({
+      message: "Post bilgileri alınırken hata oluştu",
+    });
+  }
+};
+
 // Post güncelle
 export const updatePost = async (req, res) => {
   try {
