@@ -73,6 +73,9 @@ export const getPublicStats = async (req, res) => {
         }
 
 
+        // 5. Toplam Post Sayısı
+        const totalPostCount = await Post.countDocuments({});
+
         res.status(200).json({
             success: true,
             data: {
@@ -80,6 +83,7 @@ export const getPublicStats = async (req, res) => {
                 activeUserCount,
                 answeredQuestionCount,
                 happinessRatio,
+                totalPostCount,
             },
         });
     } catch (error) {
