@@ -81,7 +81,7 @@ export const getAllPosts = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
-    const { category, author, search, isAdmin } = req.query;
+    const { category, author, search, isAdmin, event, hasEvent } = req.query;
 
     let query = { isApproved: true };
 
@@ -93,6 +93,16 @@ export const getAllPosts = async (req, res) => {
     // Yazar filtresi
     if (author) {
       query.author = author;
+    }
+
+    // Event filtresi (Belirli bir event'in postları)
+    if (event) {
+      query.event = event;
+    }
+
+    // Event'i olan postları getir (Timeline genel akış için)
+    if (hasEvent === "true") {
+      query.event = { $ne: null };
     }
 
     // Arama filtresi
@@ -501,17 +511,17 @@ export const updatePost = async (req, res) => {
     }
 
 
-  const updateData = {};
-  if (title) updateData.title = title;
-  if (content) updateData.content = content;
-  if (category) updateData.category = category;
-  if (tags) updateData.tags = tags;
-  if (images) updateData.images = images;
-  if (isAnonymous !== undefined) updateData.isAnonymous = isAnonymous;
-  if (isSensitive !== undefined) updateData.isSensitive = isSensitive;
-  if (symptoms) updateData.symptoms = symptoms;
-  if (treatments) updateData.treatments = treatments;
-  if (req.body.event !== undefined) updateData.event = req.body.event;
+    const updateData = {};
+    if (title) updateData.title = title;
+    if (content) updateData.content = content;
+    if (category) updateData.category = category;
+    if (tags) updateData.tags = tags;
+    if (images) updateData.images = images;
+    if (isAnonymous !== undefined) updateData.isAnonymous = isAnonymous;
+    if (isSensitive !== undefined) updateData.isSensitive = isSensitive;
+    if (symptoms) updateData.symptoms = symptoms;
+    if (treatments) updateData.treatments = treatments;
+    if (req.body.event !== undefined) updateData.event = req.body.event;
 
     const updatedPost = await Post.findByIdAndUpdate(
       req.params.postId,
@@ -651,7 +661,7 @@ export const reportPost = async (req, res) => {
 
     post.reportCount = post.reports.length;
     post.isReported = true;
-    
+
     await post.save();
 
     res.json({
