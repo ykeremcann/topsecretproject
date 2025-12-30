@@ -112,7 +112,12 @@ export const getAllEvents = async (req, res) => {
 
     // Harici/Dahili filtresi
     if (isExternal !== undefined) {
-      query.isExternal = isExternal === "true";
+      if (isExternal === "true") {
+        query.isExternal = true;
+      } else {
+        // isExternal=false ise, false olanları VEYA alanı hiç olmayanları getir
+        query.$or = [{ isExternal: false }, { isExternal: { $exists: false } }];
+      }
     }
 
     // Arama filtresi
