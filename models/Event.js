@@ -47,7 +47,7 @@ const eventSchema = new mongoose.Schema(
       type: Date,
       required: [true, "Etkinlik bitiş tarihi gerekli"],
       validate: {
-        validator: function(value) {
+        validator: function (value) {
           // Eğer date henüz set edilmemişse validasyonu geç
           if (!this.date) return true;
           return value > this.date;
@@ -86,6 +86,10 @@ const eventSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    isExternal: {
+      type: Boolean,
+      default: false,
+    },
     organizer: {
       type: String,
       required: [true, "Organizatör gerekli"],
@@ -95,7 +99,7 @@ const eventSchema = new mongoose.Schema(
     organizerType: {
       type: String,
       required: [true, "Organizatör tipi gerekli"],
-      enum: ["government", "private", "ngo", "individual", "hospital", "university","clinic","organization" ],
+      enum: ["government", "private", "ngo", "individual", "hospital", "university", "clinic", "organization"],
     },
     tags: [{
       type: String,
@@ -221,7 +225,7 @@ eventSchema.virtual("isOngoing").get(function () {
 });
 
 // Pre-save middleware to update currentParticipants
-eventSchema.pre("save", function(next) {
+eventSchema.pre("save", function (next) {
   if (this.participants) {
     this.currentParticipants = this.participants.filter(
       p => p.status === "confirmed"
@@ -231,18 +235,18 @@ eventSchema.pre("save", function(next) {
 });
 
 // Method to check if user is registered
-eventSchema.methods.isUserRegistered = function(userId) {
+eventSchema.methods.isUserRegistered = function (userId) {
   return this.participants.some(
     p => p.user.toString() === userId.toString() && p.status === "confirmed"
   );
 };
 
 // Method to add participant
-eventSchema.methods.addParticipant = function(userId, notes = "") {
+eventSchema.methods.addParticipant = function (userId, notes = "") {
   if (this.isFull) {
     throw new Error("Etkinlik kontenjanı dolu");
   }
-  
+
   if (this.isUserRegistered(userId)) {
     throw new Error("Kullanıcı zaten kayıtlı");
   }
@@ -252,52 +256,52 @@ eventSchema.methods.addParticipant = function(userId, notes = "") {
     notes: notes,
     status: "confirmed"
   });
-  
+
   return this.save();
 };
 
 // Method to remove participant
-eventSchema.methods.removeParticipant = function(userId) {
+eventSchema.methods.removeParticipant = function (userId) {
   this.participants = this.participants.filter(
     p => p.user.toString() !== userId.toString()
   );
-  
+
   return this.save();
 };
 
 // Method to approve event
-eventSchema.methods.approve = function(adminId) {
+eventSchema.methods.approve = function (adminId) {
   this.status = "active";
   this.approvedBy = adminId;
   this.approvedAt = new Date();
   this.rejectionReason = undefined;
-  
+
   return this.save();
 };
 
 // Method to reject event
-eventSchema.methods.reject = function(adminId, reason) {
+eventSchema.methods.reject = function (adminId, reason) {
   this.status = "rejected";
   this.approvedBy = adminId;
   this.approvedAt = new Date();
   this.rejectionReason = reason;
-  
+
   return this.save();
 };
 
 // Method to add report
-eventSchema.methods.addReport = function(userId, reason, description) {
+eventSchema.methods.addReport = function (userId, reason, description) {
   this.reports.push({
     reportedBy: userId,
     reason: reason,
     description: description
   });
-  
+
   return this.save();
 };
 
 // Pre-save middleware - tarih validasyonu
-eventSchema.pre("save", function(next) {
+eventSchema.pre("save", function (next) {
   if (this.date && this.endDate && this.endDate <= this.date) {
     const error = new Error("Bitiş tarihi başlangıç tarihinden sonra olmalı");
     error.name = "ValidationError";
@@ -307,9 +311,9 @@ eventSchema.pre("save", function(next) {
 });
 
 // Pre-update middleware - tarih validasyonu
-eventSchema.pre(["findOneAndUpdate", "updateOne", "updateMany"], function(next) {
+eventSchema.pre(["findOneAndUpdate", "updateOne", "updateMany"], function (next) {
   const update = this.getUpdate();
-  
+
   // Eğer hem date hem endDate güncelleniyorsa
   if (update.date && update.endDate) {
     if (new Date(update.endDate) <= new Date(update.date)) {
@@ -318,7 +322,7 @@ eventSchema.pre(["findOneAndUpdate", "updateOne", "updateMany"], function(next) 
       return next(error);
     }
   }
-  
+
   // Eğer sadece endDate güncelleniyorsa ve date mevcutsa
   if (update.endDate && !update.date) {
     this.model.findOne(this.getQuery()).then(doc => {
@@ -347,7 +351,7 @@ eventSchema.pre('save', async function (next) {
     // Aynı slug varsa sonuna sayı ekle
     let slug = baseSlug;
     let counter = 1;
-    
+
     while (true) {
       const existingEvent = await mongoose.model('Event').findOne({ slug: slug });
       if (!existingEvent || existingEvent._id.toString() === this._id.toString()) {
@@ -356,7 +360,7 @@ eventSchema.pre('save', async function (next) {
       slug = `${baseSlug}-${counter}`;
       counter++;
     }
-    
+
     this.slug = slug;
   }
   next();

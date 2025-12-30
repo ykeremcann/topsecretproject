@@ -21,7 +21,9 @@ export const createEvent = async (req, res) => {
       organizerType,
       tags,
       requirements,
+
       image,
+      isExternal,
     } = req.body;
 
     // Eğer doktor ise onay durumunu kontrol et
@@ -54,7 +56,9 @@ export const createEvent = async (req, res) => {
       requirements,
       image: image || "",
       authorId: req.user._id,
-      status: "pending", // Admin onayı bekler
+
+      status: req.user.role === "admin" && isExternal ? "active" : "pending", // Admin dışarıdan ekliyorsa direkt aktif yapabilir
+      isExternal: req.user.role === "admin" ? (isExternal || false) : false,
     });
 
     await event.save();
@@ -81,12 +85,12 @@ export const getAllEvents = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
-    const { category, status, isOnline, sortBy, sortOrder, search } = req.query;
+    const { category, status, isOnline, isExternal, sortBy, sortOrder, search } = req.query;
 
     let query = { status: { $in: ["active", "full"] } }; // Sadece aktif etkinlikler
 
     // if admin and query has status=all then show all status events
-      
+
 
 
     // Kategori filtresi
@@ -104,6 +108,11 @@ export const getAllEvents = async (req, res) => {
     // Online/Offline filtresi
     if (isOnline !== undefined) {
       query.isOnline = isOnline === "true";
+    }
+
+    // Harici/Dahili filtresi
+    if (isExternal !== undefined) {
+      query.isExternal = isExternal === "true";
     }
 
     // Arama filtresi
@@ -481,6 +490,7 @@ export const updateEvent = async (req, res) => {
     if (tags) updateData.tags = tags;
     if (requirements) updateData.requirements = requirements;
     if (image) updateData.image = image;
+    if (req.user.role === "admin" && isExternal !== undefined) updateData.isExternal = isExternal;
 
     const updatedEvent = await Event.findByIdAndUpdate(
       req.params.eventId,
