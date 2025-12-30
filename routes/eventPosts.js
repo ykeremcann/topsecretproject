@@ -1,5 +1,5 @@
 import express from "express";
-import { protect } from "../middleware/auth.js";
+import { authenticateToken, optionalAuth } from "../middleware/auth.js";
 import {
     createEventPost,
     getEventPosts,
@@ -10,13 +10,13 @@ import {
 
 const router = express.Router();
 
-// Public routes (Get posts)
-router.get("/:eventId", getEventPosts);
+// Public routes (Get posts) with optional auth for likes status
+router.get("/:eventId", optionalAuth, getEventPosts);
 
 // Protected routes
-router.post("/", protect, createEventPost);
-router.delete("/:postId", protect, deleteEventPost);
-router.post("/:postId/like", protect, toggleLike);
-router.post("/:postId/dislike", protect, toggleDislike);
+router.post("/", authenticateToken, createEventPost);
+router.delete("/:postId", authenticateToken, deleteEventPost);
+router.post("/:postId/like", authenticateToken, toggleLike);
+router.post("/:postId/dislike", authenticateToken, toggleDislike);
 
 export default router;
