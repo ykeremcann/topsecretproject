@@ -1,6 +1,7 @@
 import Comment from "../models/Comment.js";
 import Post from "../models/Post.js";
 import Blog from "../models/Blog.js";
+import EventPost from "../models/EventPost.js";
 import { validateComment } from "../middleware/validation.js";
 
 // Yorum oluştur
@@ -13,9 +14,9 @@ export const createComment = async (req, res) => {
 
     // PostType'ı kontrol et (Post veya Blog)
     const validPostType = postType || "Post";
-    if (!["Post", "Blog"].includes(validPostType)) {
+    if (!["Post", "Blog", "EventPost"].includes(validPostType)) {
       return res.status(400).json({
-        message: "Geçersiz post türü. Post veya Blog olmalı.",
+        message: "Geçersiz post türü. Post, Blog veya EventPost olmalı.",
       });
     }
 
@@ -23,9 +24,12 @@ export const createComment = async (req, res) => {
     if (validPostType === "Post") {
       targetModel = Post;
       targetDoc = await Post.findById(postId);
-    } else {
+    } else if (validPostType === "Blog") {
       targetModel = Blog;
       targetDoc = await Blog.findById(postId);
+    } else {
+      targetModel = EventPost;
+      targetDoc = await EventPost.findById(postId);
     }
 
     if (!targetDoc) {
@@ -81,9 +85,9 @@ export const getPostComments = async (req, res) => {
 
     // PostType'ı kontrol et (Post veya Blog)
     const validPostType = postType || "Post";
-    if (!["Post", "Blog"].includes(validPostType)) {
+    if (!["Post", "Blog", "EventPost"].includes(validPostType)) {
       return res.status(400).json({
-        message: "Geçersiz post türü. Post veya Blog olmalı.",
+        message: "Geçersiz post türü. Post, Blog veya EventPost olmalı.",
       });
     }
 
@@ -91,9 +95,12 @@ export const getPostComments = async (req, res) => {
     if (validPostType === "Post") {
       targetModel = Post;
       targetDoc = await Post.findById(postId);
-    } else {
+    } else if (validPostType === "Blog") {
       targetModel = Blog;
       targetDoc = await Blog.findById(postId);
+    } else {
+      targetModel = EventPost;
+      targetDoc = await EventPost.findById(postId);
     }
 
     if (!targetDoc) {
@@ -367,7 +374,7 @@ export const reportComment = async (req, res) => {
 
     comment.reportCount = comment.reports.length;
     comment.isReported = true;
-    
+
     await comment.save();
 
     res.json({
@@ -396,9 +403,9 @@ export const getAllComments = async (req, res) => {
 
     // 1. Post Type Filtresi
     const validPostType = postType || "Post";
-    if (!["Post", "Blog"].includes(validPostType)) {
+    if (!["Post", "Blog", "EventPost"].includes(validPostType)) {
       return res.status(400).json({
-        message: "Geçersiz post türü. Post veya Blog olmalı.",
+        message: "Geçersiz post türü. Post, Blog veya EventPost olmalı.",
       });
     }
     filters.postType = validPostType;

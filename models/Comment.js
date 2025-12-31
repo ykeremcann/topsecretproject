@@ -8,7 +8,7 @@ const commentSchema = new mongoose.Schema(
     },
     postType: {
       type: String,
-      enum: ["Post", "Blog"],
+      enum: ["Post", "Blog", "EventPost"],
       required: true,
       default: "Post",
     },
