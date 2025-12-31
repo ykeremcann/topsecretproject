@@ -1,5 +1,6 @@
 import EventPost from "../models/EventPost.js";
 import Event from "../models/Event.js";
+import Comment from "../models/Comment.js";
 
 // Create a new event post
 export const createEventPost = async (req, res) => {
@@ -52,14 +53,23 @@ export const getEventPosts = async (req, res) => {
             isApproved: true,
         });
 
-        // Add isLiked/isDisliked fields
+        // Add isLiked/isDisliked fields and commentCount
         const userId = req.user ? req.user._id : null;
-        const postsWithExtras = posts.map((post) => {
+        const postsWithExtras = await Promise.all(posts.map(async (post) => {
             const postObj = post.toObject();
             postObj.isLiked = userId ? post.likes.includes(userId) : false;
             postObj.isDisliked = userId ? post.dislikes.includes(userId) : false;
+
+            // Get comment count
+            const commentCount = await Comment.countDocuments({
+                postOrBlog: post._id,
+                postType: "EventPost",
+                isApproved: true
+            });
+            postObj.commentCount = commentCount;
+
             return postObj;
-        });
+        }));
 
         res.json({
             posts: postsWithExtras,
