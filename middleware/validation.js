@@ -474,8 +474,8 @@ export const validateComment = [
     .trim(),
   body("postType")
     .optional()
-    .isIn(["Post", "Blog"])
-    .withMessage("Post türü Post veya Blog olmalı"),
+    .isIn(["Post", "Blog", "EventPost"])
+    .withMessage("Post türü Post, Blog veya EventPost olmalı"),
   body("isAnonymous")
     .optional()
     .isBoolean()
