@@ -32,6 +32,8 @@ const postSchema = new mongoose.Schema(
         "neurological",
         "autoimmune",
         "success-story",
+        "curiosity",
+        "experience",
         "other",
       ],
     },
@@ -186,7 +188,7 @@ postSchema.pre('save', async function (next) {
     // Aynı slug varsa sonuna sayı ekle
     let slug = baseSlug;
     let counter = 1;
-    
+
     while (true) {
       const existingPost = await mongoose.model('Post').findOne({ slug: slug });
       if (!existingPost || existingPost._id.toString() === this._id.toString()) {
@@ -195,7 +197,7 @@ postSchema.pre('save', async function (next) {
       slug = `${baseSlug}-${counter}`;
       counter++;
     }
-    
+
     this.slug = slug;
   }
   next();
