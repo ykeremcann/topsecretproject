@@ -81,11 +81,25 @@ export const getCalendarData = async (req, res) => {
       date: { $gte: startDate, $lte: endDate }
     });
 
-    // Gün bazlı gruplama
+    // Gün bazlı gruplama ve İstatistik Hesaplama
     const calendarMap = {};
+    let totalExercises = 0;
+    let totalDuration = 0;
+    let totalCalories = 0;
+    const uniqueDays = new Set();
 
     activities.forEach(act => {
+      // Stats
+      totalExercises++;
+      totalDuration += (act.duration || 0);
+
+      // Sadece expense/egzersiz tipindekileri topluyoruz (zaten hepsi öyle olmalı ama emin olalım)
+      if (act.type === 'expense') {
+        totalCalories += act.calories;
+      }
+
       const dayKey = new Date(act.date).toISOString().split('T')[0]; // YYYY-MM-DD
+      uniqueDays.add(dayKey);
 
       if (!calendarMap[dayKey]) {
         calendarMap[dayKey] = {
@@ -106,9 +120,46 @@ export const getCalendarData = async (req, res) => {
       }
     });
 
+    // En Uzun Streak Hesaplama
+    const sortedDays = Array.from(uniqueDays).sort();
+    let longestStreak = 0;
+    let currentStreak = 0;
+    let prevDate = null;
+
+    for (const dayStr of sortedDays) {
+      const currentDate = new Date(dayStr);
+      if (prevDate) {
+        const diffTime = Math.abs(currentDate - prevDate);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays === 1) {
+          currentStreak++;
+        } else {
+          currentStreak = 1;
+        }
+      } else {
+        currentStreak = 1;
+      }
+
+      if (currentStreak > longestStreak) {
+        longestStreak = currentStreak;
+      }
+      prevDate = currentDate;
+    }
+
+    // Ortalama Günlük Kalori (Ayın gün sayısına böl)
+    const daysInMonth = endDate.getDate(); // Ayın son günü = gün sayısı
+    const averageDailyCalories = daysInMonth > 0 ? Math.round(totalCalories / daysInMonth) : 0;
+
     res.status(200).json({
       success: true,
-      data: Object.values(calendarMap)
+      data: Object.values(calendarMap),
+      stats: {
+        totalExercises,
+        totalDuration,
+        longestStreak,
+        averageDailyCalories
+      }
     });
 
   } catch (error) {
