@@ -19,6 +19,11 @@ const activitySchema = new mongoose.Schema(
       maxlength: [500, "Açıklama en fazla 500 karakter olabilir"],
       default: "",
     },
+    duration: {
+      type: Number,
+      default: 0,
+      min: [0, "Süre negatif olamaz"],
+    },
     calories: {
       type: Number,
       required: [true, "Kalori değeri gerekli"],
@@ -28,6 +33,7 @@ const activitySchema = new mongoose.Schema(
       type: String,
       required: [true, "Kalori tipi gerekli"],
       enum: ["income", "expense"], // income: alındı (+), expense: verildi (-)
+      default: "expense",
     },
     date: {
       type: Date,
