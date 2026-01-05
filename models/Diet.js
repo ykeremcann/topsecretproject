@@ -1,50 +1,50 @@
 import mongoose from "mongoose";
 
-const DietProgressRecordSchema = new mongoose.Schema(
-  {
-    completedAt: { type: Date, required: true },
-    notes: { type: String },
-    currentWeightKg: { type: Number }, // O gün kaydedilen kilo
-    currentBodyFatPercentage: { type: Number }, // O gün kaydedilen yağ oranı
-    consumedCalories: { type: Number }, // O gün tüketilen tahmini kalori
-  },
-  { _id: false }
-);
-
 const DietSchema = new mongoose.Schema(
   {
-    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    name: { type: String, required: true },
-    description: { type: String },
-    duration: { type: Number, required: true }, // gün
-    period: {
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: [true, "Kullanıcı gerekli"],
+    },
+    title: {
       type: String,
-      enum: ["daily", "weekly", "monthly", "custom"],
-      required: true,
+      required: [true, "Yemek adı gerekli"],
+      trim: true,
+      maxlength: [100, "Yemek adı en fazla 100 karakter olabilir"],
     },
-    customPeriod: { type: Number },
-    
-    // Hedef Metrikler
-    targetCalories: { type: Number }, // Günlük hedeflenen kalori miktarı
-    startWeightKg: { type: Number }, // Diyete başlarken ki kilo (artık zorunlu değil)
-    targetWeightKg: { type: Number }, // Hedeflenen kilo
-    startBodyFatPercentage: { type: Number }, // Başlangıç yağ oranı
-    targetBodyFatPercentage: { type: Number }, // Hedeflenen yağ oranı
-    
-    // Makro Besin Hedefleri
-    macroNutrients: {
-      protein: { type: Number }, // Protein hedefi
-      fat: { type: Number }, // Yağ hedefi 
-      carbs: { type: Number }, // Karbonhidrat hedefi
+    description: {
+      type: String,
+      trim: true,
+      maxlength: [500, "Açıklama en fazla 500 karakter olabilir"],
+      default: "",
     },
-    
-    logCount: { type: Number, default: 0 }, // progressLog.length değeri
-    isActive: { type: Boolean, default: true },
-    startDate: { type: Date, required: true },
-    endDate: { type: Date },
-    progressLog: [DietProgressRecordSchema], // completionHistory -> progressLog
+    calories: {
+      type: Number,
+      required: [true, "Kalori değeri gerekli"],
+      min: [0, "Kalori 0'dan küçük olamaz"],
+    },
+    type: {
+      type: String,
+      required: [true, "Kalori tipi gerekli"],
+      enum: ["income"], // income: alındı (+) - Diyet sadece income
+      default: "income",
+    },
+    date: {
+      type: Date,
+      required: [true, "Tarih gerekli"],
+      index: true,
+    },
+    time: {
+      type: String, // "HH:MM"
+    }
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+  }
 );
+
+// Index
+DietSchema.index({ user: 1, date: -1 });
 
 export default mongoose.model("Diet", DietSchema);
