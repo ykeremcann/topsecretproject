@@ -22,14 +22,14 @@ const storage = multer.diskStorage({
     const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
     const ext = path.extname(file.originalname);
     const nameWithoutExt = path.basename(file.originalname, ext);
-    
+
     // Dosya adını temizle: boşlukları ve özel karakterleri kaldır
     const cleanName = nameWithoutExt
       .replace(/\s+/g, '-') // Boşlukları tire ile değiştir
       .replace(/[^\w\-]/g, '') // Alfanumerik, tire ve alt çizgi dışındaki karakterleri kaldır
       .replace(/\-+/g, '-') // Birden fazla tireyi tek tireye indir
       .toLowerCase(); // Küçük harfe çevir
-    
+
     cb(null, `${cleanName}-${uniqueSuffix}${ext.toLowerCase()}`);
   },
 });
@@ -37,7 +37,7 @@ const storage = multer.diskStorage({
 // Dosya filtresi - sadece resim dosyalarına izin ver
 const fileFilter = (req, file, cb) => {
   const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"];
-  
+
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
@@ -53,7 +53,7 @@ const upload = multer({
   storage: storage,
   fileFilter: fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB maksimum dosya boyutu
+    fileSize: 10 * 1024 * 1024, // 10MB maksimum dosya boyutu
   },
 });
 

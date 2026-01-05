@@ -74,6 +74,63 @@ export const createComment = async (req, res) => {
   }
 };
 
+// Yoruma yanıt ver
+export const replyToComment = async (req, res) => {
+  try {
+    const { content, isAnonymous } = req.body;
+    const { commentId } = req.params;
+
+    // Ana yorumu bul
+    const parentComment = await Comment.findById(commentId);
+
+    if (!parentComment) {
+      return res.status(404).json({
+        message: "Yorum bulunamadı",
+      });
+    }
+
+    // Ana yorumun parent'i varsa, o parent'i kullan (iç içe yorumları engellemek için)
+    // Ancak mevcut yapıda replies array'i parent'ta tutuluyor, bu yüzden her zaman
+    // en üstteki yorumu parent olarak almalıyız.
+    // Eğer parentComment.parentComment null değilse, bu bir alt yorumdur.
+    // O zaman reply'i de en üstteki yoruma eklemeliyiz.
+    const rootCommentId = parentComment.parentComment || commentId;
+
+    const newComment = new Comment({
+      postOrBlog: parentComment.postOrBlog,
+      postType: parentComment.postType,
+      author: req.user._id,
+      content,
+      isAnonymous: isAnonymous || false,
+      parentComment: rootCommentId,
+    });
+
+    await newComment.save();
+
+    // Parent comment'in replies array'ine ekle
+    await Comment.findByIdAndUpdate(rootCommentId, {
+      $addToSet: { replies: newComment._id },
+    });
+
+    // Populate yapıp döndür
+    await newComment.populate(
+      "author",
+      "username firstName lastName profilePicture"
+    );
+
+    res.status(201).json({
+      message: "Yanıt başarıyla eklendi",
+      comment: newComment,
+    });
+  } catch (error) {
+    console.error("Yoruma yanıt verme hatası:", error);
+    res.status(500).json({
+      message: "Yanıt eklenirken hata oluştu",
+    });
+  }
+
+};
+
 // Post veya Blog'un yorumlarını getir
 export const getPostComments = async (req, res) => {
   try {

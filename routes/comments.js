@@ -8,6 +8,7 @@ import {
   toggleDislike,
   reportComment,
   getAllComments,
+  replyToComment,
 } from "../controllers/commentController.js";
 import { validateComment } from "../middleware/validation.js";
 import { authenticateToken, optionalAuth } from "../middleware/auth.js";
@@ -37,5 +38,9 @@ router.post("/:commentId/dislike", authenticateToken, toggleDislike);
 
 // POST /api/comments/:commentId/report - Yorum raporla
 router.post("/:commentId/report", authenticateToken, reportComment);
+
+
+// POST /api/comments/:commentId/reply - Yoruma yanıt ver
+router.post("/:commentId/reply", authenticateToken, validateComment, replyToComment);
 
 export default router;
