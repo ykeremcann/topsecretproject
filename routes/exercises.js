@@ -1,60 +1,34 @@
 import express from "express";
 import {
-  getAllExercises,
-  getExerciseById,
-  createExercise,
-  updateExercise,
-  deleteExercise,
-  completeExercise,
-  toggleExerciseStatus,
-  getUserStats,
-  getActiveExercises,
-  getExerciseHistory,
-  getDailySummary,
-  getCalendarData,
+  getActivities,
+  createActivity,
+  updateActivity,
+  deleteActivity,
+  getCalendarData
 } from "../controllers/exerciseController.js";
 import { authenticateToken } from "../middleware/auth.js";
-import { validateExercise, validateExerciseCompletion } from "../middleware/validation.js";
+// Validasyon middleware'ini şimdilik basitleştiriyoruz veya inline tanımlayabiliriz
+// Simdilik validateExercise'i kaldırıyorum, controller icinde handle edecegiz veya generic validator kullanırız.
+// Ancak import hatası olmaması icin kontrol etmeliyim. 
+// Plan: validation.js'i sonra duzeltiriz, simdilik express-validator controller icinde calisiyor, route level middleware'i kaldiriyorum.
 
 const router = express.Router();
 
-// Tüm route'lar authentication gerektirir
 router.use(authenticateToken);
 
-// GET /api/exercises - Tüm egzersizleri getir (filtreleme ve sayfalama ile)
-router.get("/", getAllExercises);
+// GET /api/exercises - Günlük veya aralık bazlı aktiviteler
+router.get("/", getActivities);
 
-// GET /api/exercises/active - Aktif egzersizleri getir
-router.get("/active", getActiveExercises);
-
-// GET /api/exercises/stats - Kullanıcı istatistiklerini getir
-router.get("/stats", getUserStats);
-
-// GET /api/exercises/daily-summary - Günlük egzersiz özeti
-router.get("/daily-summary", getDailySummary);
-
-// GET /api/exercises/calendar - Takvim verilerini getir
+// GET /api/exercises/calendar - Takvim verisi
 router.get("/calendar", getCalendarData);
 
-// GET /api/exercises/:id - Tek egzersiz getir
-router.get("/:id", getExerciseById);
+// POST /api/exercises - Yeni aktivite
+router.post("/", createActivity);
 
-// GET /api/exercises/:id/history - Egzersiz tamamlama geçmişini getir
-router.get("/:id/history", getExerciseHistory);
+// PUT /api/exercises/:id - Güncelle
+router.put("/:id", updateActivity);
 
-// POST /api/exercises - Yeni egzersiz oluştur
-router.post("/", validateExercise, createExercise);
-
-// PUT /api/exercises/:id - Egzersiz güncelle
-router.put("/:id", validateExercise, updateExercise);
-
-// DELETE /api/exercises/:id - Egzersiz sil
-router.delete("/:id", deleteExercise);
-
-// POST /api/exercises/:id/complete - Egzersizi tamamla
-router.post("/:id/complete", validateExerciseCompletion, completeExercise);
-
-// PATCH /api/exercises/:id/toggle - Egzersiz durumunu değiştir (aktif/pasif)
-router.patch("/:id/toggle", toggleExerciseStatus);
+// DELETE /api/exercises/:id - Sil
+router.delete("/:id", deleteActivity);
 
 export default router;
