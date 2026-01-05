@@ -184,7 +184,7 @@ export const createActivity = async (req, res) => {
       });
     }
 
-    const { title, description, calories, type, date, time } = req.body;
+    const { title, description, calories, duration, type, date, time } = req.body;
     const userId = req.user.id;
 
     const activity = new Activity({
@@ -192,6 +192,7 @@ export const createActivity = async (req, res) => {
       title,
       description,
       calories,
+      duration,
       type,
       date: date || new Date(),
       time
