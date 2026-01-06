@@ -3,6 +3,7 @@ import Post from "../models/Post.js";
 import Blog from "../models/Blog.js";
 import EventPost from "../models/EventPost.js";
 import { validateComment } from "../middleware/validation.js";
+import { createNotification } from "../utils/notifications.js";
 
 // Yorum oluştur
 export const createComment = async (req, res) => {
@@ -62,6 +63,27 @@ export const createComment = async (req, res) => {
       "username firstName lastName profilePicture"
     );
 
+    // Notify post author
+    // validPostType === 'Post' checks are already done
+    await createNotification(req.io, {
+      recipient: targetDoc.author,
+      sender: req.user._id,
+      type: "comment_post",
+      post: validPostType === 'Post' ? postId : null, // If blog, maybe we handle differently, but schema allows post/comment ref. We might want to add 'blog' or 'eventPost' field to Notification or reuse 'post' generically?
+      // Let's see Notification model: post: { type: ObjectId, ref: 'Post' }
+      // If it's a Blog, 'post' field ref might fail if populated with Blog ID.
+      // For simplicity/safety, let's only notify for Posts for now OR extend schema. 
+      // User asked for "users post, comment, share". Implicitly Posts. 
+      // But let's check properly: if(validPostType === 'Post') ...
+      // If I put a Blog ID in a 'ref: Post' field, mongoose populate will return null if it doesn't find it in Post collection.
+      // So safe to skip populate if wrong type, but ID storage works.
+      // Recommended: Only populate 'post' if it's a Post.
+      // For now, let's assume validPostType === 'Post' for the 'post' field.
+      post: validPostType === 'Post' ? postId : null,
+      comment: comment._id,
+      senderInfo: req.user
+    });
+
     res.status(201).json({
       message: "Yorum başarıyla oluşturuldu",
       comment,
@@ -117,6 +139,36 @@ export const replyToComment = async (req, res) => {
       "author",
       "username firstName lastName profilePicture"
     );
+
+    // Notify Parent Comment Author
+    await createNotification(req.io, {
+      recipient: parentComment.author,
+      sender: req.user._id,
+      type: "reply_comment",
+      post: parentComment.postType === 'Post' ? parentComment.postOrBlog : null,
+      comment: newComment._id,
+      senderInfo: req.user
+    });
+
+    // Notify Original Post/Blog Author (if different from Parent Comment Author)
+    // We need to fetch the post to know the author
+    // Implementation choice: Maybe too much noise? Facebook notifies both.
+    // Let's stick to Parent Comment Author for "Reply" and maybe Post Author for "Comment on your post" (technically a reply is a comment on post too).
+    // Let's just notify parent comment author for replies to avoid double notifications to post author if they are the same person, or spam.
+    // Actually, createNotification handles "don't notify self".
+    if (parentComment.postType === 'Post') {
+      const post = await Post.findById(parentComment.postOrBlog);
+      if (post && post.author.toString() !== parentComment.author.toString()) {
+        await createNotification(req.io, {
+          recipient: post.author,
+          sender: req.user._id,
+          type: "comment_post",
+          post: post._id,
+          comment: newComment._id,
+          senderInfo: req.user
+        });
+      }
+    }
 
     res.status(201).json({
       message: "Yanıt başarıyla eklendi",
@@ -343,6 +395,22 @@ export const toggleLike = async (req, res) => {
 
     const wasLiked = comment.likes.includes(req.user._id);
     await comment.toggleLike(req.user._id);
+
+    // Notify comment author if liked
+    // Check if liked AFTER toggle (meaning it was added)
+    // Same logic as Post: fetch or logic
+    // We already reload below:
+    const updatedCommentToCheck = await Comment.findById(commentId);
+    if (updatedCommentToCheck.likes.includes(req.user._id) && !wasLiked) {
+      await createNotification(req.io, {
+        recipient: comment.author,
+        sender: req.user._id,
+        type: "like_comment",
+        post: comment.postType === 'Post' ? comment.postOrBlog : null,
+        comment: comment._id,
+        senderInfo: req.user
+      });
+    }
 
     // Güncellenmiş comment'i tekrar yükle
     const updatedComment = await Comment.findById(commentId);

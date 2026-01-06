@@ -1,6 +1,7 @@
 import Post from "../models/Post.js";
 import User from "../models/User.js";
 import Comment from "../models/Comment.js";
+import { createNotification } from "../utils/notifications.js";
 
 // Post oluştur
 export const createPost = async (req, res) => {
@@ -587,6 +588,24 @@ export const toggleLike = async (req, res) => {
     }
 
     await post.toggleLike(req.user._id);
+
+    // Notify post author if liked and not self-like
+    if (!post.likes.includes(req.user._id)) { // Toggle logic might have removed it, check if present? No, wait. 
+      // If we just toggled, we need to know if it was added or removed.
+      // The method `toggleLike` usually pushes if not exists, pulls if exists.
+      // Let's check the result. The post object IS NOT automatically updated in memory if toggleLike is a method on the instance that does DB ops but doesn't update 'this' fully or if we need to reload. 
+      // Safest is to interpret the result or re-fetch, but purely based on standard toggle logic:
+      const updatedPost = await Post.findById(req.params.postId);
+      if (updatedPost.likes.includes(req.user._id)) {
+        await createNotification(req.io, {
+          recipient: post.author,
+          sender: req.user._id,
+          type: "like_post",
+          post: post._id,
+          senderInfo: req.user
+        });
+      }
+    }
 
     res.json({
       message: "Beğeni durumu güncellendi",

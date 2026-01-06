@@ -21,6 +21,7 @@ import exerciseRoutes from "./routes/exercises.js";
 import dietRoutes from "./routes/diets.js";
 import messageRoutes from "./routes/messages.js";
 import statsRoutes from "./routes/stats.js";
+import notificationRoutes from "./routes/notifications.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -109,6 +110,7 @@ app.use("/api/exercises", exerciseRoutes);
 app.use("/api/diets", dietRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/stats", statsRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 // Health check endpoint
 app.get("/api/health", (req, res) => {
