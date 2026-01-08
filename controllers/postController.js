@@ -722,20 +722,31 @@ export const getUserPosts = async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    const posts = await Post.find({
+    const currentUserId = req.user ? req.user._id.toString() : null;
+    const isOwner = currentUserId === userId;
+
+    let query = {
       author: userId,
       isApproved: true,
-    })
+    };
+
+    // Eğer kullanıcı kendi profiline bakmıyorsa, anonim postları gizle
+    if (!isOwner) {
+      query.isAnonymous = { $ne: true };
+    }
+
+    const posts = await Post.find(query)
       .populate("author", "username firstName lastName profilePicture role isVerified doctorInfo")
       .populate("event", "title date")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
 
-    const total = await Post.countDocuments({
-      author: userId,
-      isApproved: true,
-    });
+    const total = await Post.countDocuments(query);
+
+    // Post'ları map'leyerek anonim olanları gizle (owner olsa bile anonimler anonim görünmeli ama listelenmeli)
+    // Owner kendisi anonim postunu görse bile "Anonim" olarak görmesi mantıklı olabilir veya
+    // "Senin anonim postun" gibi bir işaret olabilir. Şimdilik mevcut mantığı koruyoruz.
 
     // Post'ları map'leyerek anonim olanları gizle
     const postsWithAnonymous = posts.map((post) => {

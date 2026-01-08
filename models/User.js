@@ -151,13 +151,13 @@ userSchema.pre("save", async function (next) {
     }
     this.doctorInfo.approvalStatus = "pending";
   }
-  
+
   // Eğer role patient veya admin olarak değiştiriliyorsa
   if (this.isModified("role") && (this.role === "patient" || this.role === "admin")) {
     // Doctor info'yu temizle
     this.doctorInfo = undefined;
   }
-  
+
   next();
 });
 
