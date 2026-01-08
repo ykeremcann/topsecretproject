@@ -587,28 +587,36 @@ export const toggleLike = async (req, res) => {
       });
     }
 
+    // Önceki durumunu kontrol et (bildirim için)
+    const wasLiked = post.likes.includes(req.user._id);
+
+    // Toggle işlemi
     await post.toggleLike(req.user._id);
 
-    // Check if user already liked (before toggle)
-    const alreadyLiked = post.likes.includes(req.user._id);
+    // Yeni durumları kontrol et
+    const isLiked = post.likes.includes(req.user._id);
+    const isDisliked = post.dislikes.includes(req.user._id);
 
-    await post.toggleLike(req.user._id);
-
-    // If they hadn't liked it before, and now they effectively liked it (toggle adds it), send notification
-    if (!alreadyLiked) {
-      await createNotification(req.io, {
-        recipient: post.author,
-        sender: req.user._id,
-        type: "like_post",
-        post: post._id,
-        senderInfo: req.user
-      });
+    // Eğer kullanıcı yeni beğendiyse (önceden beğenmemişse ve şimdi beğenmişse) bildirim gönder
+    if (!wasLiked && isLiked) {
+      // Kendi postunu beğendiyse bildirim gönderme
+      if (post.author.toString() !== req.user._id.toString()) {
+        await createNotification(req.io, {
+          recipient: post.author,
+          sender: req.user._id,
+          type: "like_post",
+          post: post._id,
+          senderInfo: req.user
+        });
+      }
     }
 
     res.json({
       message: "Beğeni durumu güncellendi",
-      likes: post.likes.length,
-      dislikes: post.dislikes.length,
+      likeCount: post.likes.length,
+      dislikeCount: post.dislikes.length,
+      isLiked,
+      isDisliked
     });
   } catch (error) {
     console.error("Beğeni işlemi hatası:", error);
@@ -629,12 +637,19 @@ export const toggleDislike = async (req, res) => {
       });
     }
 
+    // Toggle işlemi
     await post.toggleDislike(req.user._id);
+
+    // Yeni durumları kontrol et
+    const isLiked = post.likes.includes(req.user._id);
+    const isDisliked = post.dislikes.includes(req.user._id);
 
     res.json({
       message: "Beğenmeme durumu güncellendi",
-      likes: post.likes.length,
-      dislikes: post.dislikes.length,
+      likeCount: post.likes.length,
+      dislikeCount: post.dislikes.length,
+      isLiked,
+      isDisliked
     });
   } catch (error) {
     console.error("Beğenmeme işlemi hatası:", error);
