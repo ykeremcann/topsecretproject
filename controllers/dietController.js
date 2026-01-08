@@ -95,9 +95,9 @@ export const getCalendarData = async (req, res) => {
       calendarMap[dayKey].totalIncome += d.calories;
     });
 
-    // Ortalama Günlük Kalori (Sadece kayıt girilen günler üzerinden mi yoksa ay geneli mi? Ay geneli yapalım Egzersiz gibi)
-    const daysInMonth = endDate.getDate();
-    const averageDailyCalories = daysInMonth > 0 ? Math.round(totalCalories / daysInMonth) : 0;
+    // Ortalama Günlük Kalori (Sadece kayıt girilen günler üzerinden)
+    const activeDaysCount = uniqueDays.size;
+    const averageDailyCalories = activeDaysCount > 0 ? Math.round(totalCalories / activeDaysCount) : 0;
 
     res.status(200).json({
       success: true,

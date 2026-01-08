@@ -147,9 +147,9 @@ export const getCalendarData = async (req, res) => {
       prevDate = currentDate;
     }
 
-    // Ortalama Günlük Kalori (Ayın gün sayısına böl)
-    const daysInMonth = endDate.getDate(); // Ayın son günü = gün sayısı
-    const averageDailyCalories = daysInMonth > 0 ? Math.round(totalCalories / daysInMonth) : 0;
+    // Ortalama Günlük Kalori (Sadece kayıt girilen günler üzerinden)
+    const activeDaysCount = uniqueDays.size;
+    const averageDailyCalories = activeDaysCount > 0 ? Math.round(totalCalories / activeDaysCount) : 0;
 
     res.status(200).json({
       success: true,
