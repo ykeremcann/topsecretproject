@@ -48,7 +48,7 @@ export const createPost = async (req, res) => {
     await post.save();
 
     // Populate author bilgileri
-    await post.populate("author", "username firstName lastName profilePicture");
+    await post.populate("author", "username firstName lastName profilePicture role isVerified doctorInfo");
 
     // Post objesini dönüştür
     const postObj = post.toObject();
@@ -112,7 +112,7 @@ export const getAllPosts = async (req, res) => {
     }
 
     const posts = await Post.find(query)
-      .populate("author", "username firstName lastName profilePicture")
+      .populate("author", "username firstName lastName profilePicture role isVerified doctorInfo")
       .populate("event", "title date")
       .populate("reports.userId", "username firstName lastName")
       .sort({ createdAt: -1 })
@@ -186,7 +186,7 @@ export const getAllPosts = async (req, res) => {
 export const getPostById = async (req, res) => {
   try {
     const post = await Post.findById(req.params.postId)
-      .populate("author", "username firstName lastName profilePicture")
+      .populate("author", "username firstName lastName profilePicture role isVerified doctorInfo")
       .populate("event", "title date");
 
     if (!post) {
@@ -222,7 +222,7 @@ export const getPostById = async (req, res) => {
       isApproved: true,
       _id: { $ne: post._id },
     })
-      .populate("author", "username firstName lastName profilePicture")
+      .populate("author", "username firstName lastName profilePicture role isVerified doctorInfo")
       .sort({ createdAt: -1 })
       .limit(3);
 
@@ -282,6 +282,9 @@ export const getPostById = async (req, res) => {
                 firstName: 1,
                 lastName: 1,
                 profilePicture: 1,
+                role: 1,
+                isVerified: 1,
+                doctorInfo: 1,
               },
             },
           ],
@@ -334,7 +337,7 @@ export const getPostById = async (req, res) => {
 export const getPostBySlug = async (req, res) => {
   try {
     const post = await Post.findOne({ slug: req.params.slug })
-      .populate("author", "username firstName lastName profilePicture")
+      .populate("author", "username firstName lastName profilePicture role isVerified doctorInfo")
       .populate("event", "title date");
 
     if (!post) {
@@ -370,7 +373,7 @@ export const getPostBySlug = async (req, res) => {
       isApproved: true,
       _id: { $ne: post._id },
     })
-      .populate("author", "username firstName lastName profilePicture")
+      .populate("author", "username firstName lastName profilePicture role isVerified doctorInfo")
       .sort({ createdAt: -1 })
       .limit(3);
 
@@ -430,6 +433,9 @@ export const getPostBySlug = async (req, res) => {
                 firstName: 1,
                 lastName: 1,
                 profilePicture: 1,
+                role: 1,
+                isVerified: 1,
+                doctorInfo: 1,
               },
             },
           ],
@@ -528,7 +534,7 @@ export const updatePost = async (req, res) => {
       req.params.postId,
       updateData,
       { new: true, runValidators: true }
-    ).populate("author", "username firstName lastName profilePicture");
+    ).populate("author", "username firstName lastName profilePicture role isVerified doctorInfo");
 
     res.json({
       message: "Post başarıyla güncellendi",
@@ -720,7 +726,7 @@ export const getUserPosts = async (req, res) => {
       author: userId,
       isApproved: true,
     })
-      .populate("author", "username firstName lastName profilePicture")
+      .populate("author", "username firstName lastName profilePicture role isVerified doctorInfo")
       .populate("event", "title date")
       .sort({ createdAt: -1 })
       .skip(skip)
