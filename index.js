@@ -30,7 +30,7 @@ dotenv.config();
 
 const app = express();
 const httpServer = createServer(app);
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 import { handleSocketConnection } from "./sockets/socketHandler.js";
 
