@@ -13,6 +13,7 @@ import {
   getEventStats,
   approveEvent,
   reportEvent,
+  getPublicEventStats,
 } from "../controllers/eventController.js";
 import { validateEvent } from "../middleware/validation.js";
 import {
@@ -31,6 +32,9 @@ router.get("/", optionalAuth, getAllEvents);
 
 // GET /api/events/search - Etkinlik arama
 router.get("/search", searchEvents);
+
+// GET /api/events/public-stats - Genel etkinlik istatistikleri (public)
+router.get("/public-stats", getPublicEventStats);
 
 // GET /api/events/stats - Etkinlik istatistikleri (admin)
 router.get("/stats", authenticateToken, requireAdmin, getEventStats);

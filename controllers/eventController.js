@@ -791,3 +791,28 @@ export const reportEvent = async (req, res) => {
     });
   }
 };
+
+// Genel etkinlik istatistikleri (Public)
+export const getPublicEventStats = async (req, res) => {
+  try {
+    // Toplam katılımcı sayısı (sadece aktif ve tamamlanmış etkinlikler)
+    const totalParticipantsResult = await Event.aggregate([
+      { $match: { status: { $in: ["active", "completed"] } } },
+      { $group: { _id: null, total: { $sum: "$currentParticipants" } } },
+    ]);
+
+    const totalParticipants = totalParticipantsResult[0]?.total || 0;
+
+    res.json({
+      stats: {
+        totalParticipants,
+      },
+    });
+  } catch (error) {
+    console.error("Genel istatistikleri getirme hatası:", error);
+    res.status(500).json({
+      message: "İstatistikler alınırken hata oluştu",
+    });
+  }
+};
+
