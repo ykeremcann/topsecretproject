@@ -108,7 +108,12 @@ export const getAllPosts = async (req, res) => {
 
     // Arama filtresi
     if (search) {
-      query.$text = { $search: search };
+      const searchRegex = new RegExp(search.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&"), "i");
+      query.$or = [
+        { title: searchRegex },
+        { content: searchRegex },
+        { tags: searchRegex },
+      ];
     }
 
     const posts = await Post.find(query)
