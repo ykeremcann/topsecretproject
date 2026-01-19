@@ -175,7 +175,7 @@ export const getUserById = async (req, res) => {
 // Kullanıcı güncelle
 export const updateUser = async (req, res) => {
   try {
-    const { firstName, lastName, bio, dateOfBirth, profilePicture } = req.body;
+    const { firstName, lastName, bio, dateOfBirth, profilePicture, phone, gender } = req.body;
 
     const updateData = {};
     if (firstName) updateData.firstName = firstName;
@@ -183,6 +183,8 @@ export const updateUser = async (req, res) => {
     if (bio !== undefined) updateData.bio = bio;
     if (dateOfBirth) updateData.dateOfBirth = dateOfBirth;
     if (profilePicture) updateData.profilePicture = profilePicture;
+    if (phone) updateData.phone = phone;
+    if (gender) updateData.gender = gender;
 
     const user = await User.findByIdAndUpdate(req.user._id, updateData, {
       new: true,
@@ -205,7 +207,7 @@ export const updateUser = async (req, res) => {
 export const updateUserById = async (req, res) => {
   try {
     const { userId } = req.params;
-    const { firstName, lastName, bio, dateOfBirth, profilePicture } = req.body;
+    const { firstName, lastName, bio, dateOfBirth, profilePicture, phone, gender } = req.body;
 
     const updateData = {};
     if (firstName) updateData.firstName = firstName;
@@ -213,6 +215,8 @@ export const updateUserById = async (req, res) => {
     if (bio !== undefined) updateData.bio = bio;
     if (dateOfBirth) updateData.dateOfBirth = dateOfBirth;
     if (profilePicture) updateData.profilePicture = profilePicture;
+    if (phone) updateData.phone = phone;
+    if (gender) updateData.gender = gender;
 
     const user = await User.findByIdAndUpdate(userId, updateData, {
       new: true,

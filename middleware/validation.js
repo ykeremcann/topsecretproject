@@ -48,6 +48,16 @@ export const validateRegister = [
     .matches(/^[a-zA-ZğüşıöçĞÜŞİÖÇ\s]+$/)
     .withMessage("Soyad sadece harf içerebilir"),
 
+  body("phone")
+    .optional()
+    .isMobilePhone("tr-TR")
+    .withMessage("Geçerli bir telefon numarası girin"),
+
+  body("gender")
+    .optional()
+    .isIn(["male", "female", "other", ""])
+    .withMessage("Geçerli bir cinsiyet seçin"),
+
   handleValidationErrors,
 ];
 
@@ -143,6 +153,16 @@ export const validateUserUpdate = [
     .withMessage("Soyad 2-50 karakter arasında olmalı")
     .matches(/^[a-zA-ZğüşıöçĞÜŞİÖÇ\s]+$/)
     .withMessage("Soyad sadece harf içerebilir"),
+
+  body("phone")
+    .optional()
+    .isMobilePhone("tr-TR")
+    .withMessage("Geçerli bir telefon numarası girin"),
+
+  body("gender")
+    .optional()
+    .isIn(["male", "female", "other", ""])
+    .withMessage("Geçerli bir cinsiyet seçin"),
 
   body("bio")
     .optional()

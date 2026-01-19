@@ -38,6 +38,16 @@ const userSchema = new mongoose.Schema(
       trim: true,
       maxlength: [50, "Soyad en fazla 50 karakter olabilir"],
     },
+    phone: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    gender: {
+      type: String,
+      enum: ["male", "female", "other", ""],
+      default: "",
+    },
     role: {
       type: String,
       enum: ["patient", "admin", "doctor"],

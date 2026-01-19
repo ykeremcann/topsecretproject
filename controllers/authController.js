@@ -9,20 +9,22 @@ import jwt from "jsonwebtoken";
 // Kullanıcı kayıt
 export const register = async (req, res) => {
   try {
-    const { 
-      username, 
-      email, 
-      password, 
-      firstName, 
-      lastName, 
-      dateOfBirth, 
+    const {
+      username,
+      email,
+      password,
+      firstName,
+      lastName,
+      dateOfBirth,
       role,
       // Doktor bilgileri
       location,
       specialization,
       hospital,
       experience,
-      showContactInfo
+      showContactInfo,
+      phone,
+      gender,
     } = req.body;
 
     // Email ve username kontrolü
@@ -44,12 +46,14 @@ export const register = async (req, res) => {
       firstName,
       lastName,
       dateOfBirth,
+      phone,
+      gender,
     };
 
     // Eğer role belirtilmişse ekle
     if (role && ["patient", "doctor"].includes(role)) {
       userData.role = role;
-      
+
       // Eğer doktor ise doktor bilgilerini ekle
       if (role === "doctor") {
         userData.doctorInfo = {
@@ -155,6 +159,8 @@ export const login = async (req, res) => {
       isVerified: user.isVerified,
       profilePicture: user.profilePicture,
       bio: user.bio,
+      phone: user.phone,
+      gender: user.gender,
     };
 
     // Eğer doktor ise doktor bilgilerini ekle
@@ -269,8 +275,8 @@ export const getProfile = async (req, res) => {
     // Kullanıcının postlarına yapılan yorumlar
     const userPosts = await Post.find({ author: req.user._id, isApproved: true }).select("_id");
     const userPostIds = userPosts.map(post => post._id);
-    
-    const commentsOnMyPosts = await Comment.find({ 
+
+    const commentsOnMyPosts = await Comment.find({
       postOrBlog: { $in: userPostIds },
       postType: "Post",
       author: { $ne: req.user._id } // Kendi yorumlarını hariç tut
@@ -282,8 +288,8 @@ export const getProfile = async (req, res) => {
       .limit(10);
 
     // Kullanıcının postlarına yapılan beğeniler
-    const likesOnMyPosts = await Post.find({ 
-      author: req.user._id, 
+    const likesOnMyPosts = await Post.find({
+      author: req.user._id,
       isApproved: true,
       likes: { $exists: true, $ne: [] }
     })
@@ -334,9 +340,9 @@ export const getProfile = async (req, res) => {
 
 
       const totalBlogs = await Blog.countDocuments({ author: req.user._id });
-      const publishedBlogs = await Blog.countDocuments({ 
-        author: req.user._id, 
-        isPublished: true 
+      const publishedBlogs = await Blog.countDocuments({
+        author: req.user._id,
+        isPublished: true
       });
 
       responseData.stats.totalBlogs = totalBlogs;
@@ -354,7 +360,7 @@ export const getProfile = async (req, res) => {
     const totalCreatedEvents = await Event.countDocuments({ authorId: req.user._id });
 
     // Katıldığı etkinlikler (en güncel 3 tanesi)
-    const participatingEvents = await Event.find({ 
+    const participatingEvents = await Event.find({
       "participants.user": req.user._id,
       "participants.status": "confirmed"
     })
@@ -362,7 +368,7 @@ export const getProfile = async (req, res) => {
       .populate("authorId", "username firstName lastName profilePicture role")
       .sort({ date: -1 }) // Tarihe göre azalan sıralama (en yeni etkinlikler)
 
-    const totalParticipatingEvents = await Event.countDocuments({ 
+    const totalParticipatingEvents = await Event.countDocuments({
       "participants.user": req.user._id,
       "participants.status": "confirmed"
     });
@@ -384,7 +390,7 @@ export const getProfile = async (req, res) => {
 // Kullanıcı profili güncelleme
 export const updateUser = async (req, res) => {
   try {
-    const { firstName, lastName, bio, dateOfBirth, profilePicture, doctorInfo } = req.body;
+    const { firstName, lastName, bio, dateOfBirth, profilePicture, doctorInfo, phone, gender } = req.body;
 
     const updateData = {};
     if (firstName) updateData.firstName = firstName;
@@ -392,6 +398,8 @@ export const updateUser = async (req, res) => {
     if (bio !== undefined) updateData.bio = bio;
     if (dateOfBirth) updateData.dateOfBirth = dateOfBirth;
     if (profilePicture !== undefined) updateData.profilePicture = profilePicture;
+    if (phone) updateData.phone = phone;
+    if (gender) updateData.gender = gender;
 
     // Eğer doctorInfo güncellenmek isteniyorsa mevcut doctorInfo ile birleştir
     if (doctorInfo !== undefined) {
