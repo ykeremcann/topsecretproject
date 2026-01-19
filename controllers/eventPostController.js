@@ -1,6 +1,7 @@
 import EventPost from "../models/EventPost.js";
 import Event from "../models/Event.js";
 import Comment from "../models/Comment.js";
+import { createNotification } from "../utils/notifications.js";
 
 // Create a new event post
 export const createEventPost = async (req, res) => {
@@ -91,17 +92,49 @@ export const getEventPosts = async (req, res) => {
 export const toggleLike = async (req, res) => {
     try {
         const post = await EventPost.findById(req.params.postId);
-        if (!post) return res.status(404).json({ message: "Paylaşım bulunamadı" });
 
+        if (!post) {
+            return res.status(404).json({
+                message: "Paylaşım bulunamadı",
+            });
+        }
+
+        // Önceki durumunu kontrol et (bildirim için)
+        const wasLiked = post.likes.includes(req.user._id);
+
+        // Toggle işlemi
         await post.toggleLike(req.user._id);
 
+        // Yeni durumları kontrol et
+        const isLiked = post.likes.includes(req.user._id);
+        const isDisliked = post.dislikes.includes(req.user._id);
+
+        // Eğer kullanıcı yeni beğendiyse (önceden beğenmemişse ve şimdi beğenmişse) bildirim gönder
+        if (!wasLiked && isLiked) {
+            // Kendi postunu beğendiyse bildirim gönderme
+            if (post.author.toString() !== req.user._id.toString()) {
+                await createNotification(req.io, {
+                    recipient: post.author,
+                    sender: req.user._id,
+                    type: "like_event_post", // Assuming new type or reuse like_post if generic
+                    post: post._id,
+                    senderInfo: req.user
+                });
+            }
+        }
+
         res.json({
-            message: "Beğeni güncellendi",
-            likeCount: post.likeCount,
-            isLiked: post.likes.includes(req.user._id),
+            message: "Beğeni durumu güncellendi",
+            likeCount: post.likes.length,
+            dislikeCount: post.dislikes.length,
+            isLiked,
+            isDisliked
         });
     } catch (error) {
-        res.status(500).json({ message: "İşlem hatası" });
+        console.error("Beğeni işlemi hatası:", error);
+        res.status(500).json({
+            message: "Beğeni işlemi sırasında hata oluştu",
+        });
     }
 };
 
@@ -109,17 +142,32 @@ export const toggleLike = async (req, res) => {
 export const toggleDislike = async (req, res) => {
     try {
         const post = await EventPost.findById(req.params.postId);
-        if (!post) return res.status(404).json({ message: "Paylaşım bulunamadı" });
 
+        if (!post) {
+            return res.status(404).json({
+                message: "Paylaşım bulunamadı",
+            });
+        }
+
+        // Toggle işlemi
         await post.toggleDislike(req.user._id);
 
+        // Yeni durumları kontrol et
+        const isLiked = post.likes.includes(req.user._id);
+        const isDisliked = post.dislikes.includes(req.user._id);
+
         res.json({
-            message: "Beğenmeme güncellendi",
-            dislikeCount: post.dislikeCount,
-            isDisliked: post.dislikes.includes(req.user._id),
+            message: "Beğenmeme durumu güncellendi",
+            likeCount: post.likes.length,
+            dislikeCount: post.dislikes.length,
+            isLiked,
+            isDisliked
         });
     } catch (error) {
-        res.status(500).json({ message: "İşlem hatası" });
+        console.error("Beğenmeme işlemi hatası:", error);
+        res.status(500).json({
+            message: "Beğenmeme işlemi sırasında hata oluştu",
+        });
     }
 };
 
