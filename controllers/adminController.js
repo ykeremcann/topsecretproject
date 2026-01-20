@@ -503,6 +503,7 @@ export const getReportedContent = async (req, res) => {
     console.error("Raporlanan içerik getirme hatası:", error);
     res.status(500).json({
       message: "Raporlanan içerikler alınırken hata oluştu",
+      error: error.message,
     });
   }
 };
