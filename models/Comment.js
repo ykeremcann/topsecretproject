@@ -5,6 +5,7 @@ const commentSchema = new mongoose.Schema(
     postOrBlog: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,
+      refPath: 'postType'
     },
     postType: {
       type: String,

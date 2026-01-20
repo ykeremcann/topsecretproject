@@ -468,7 +468,7 @@ export const getReportedContent = async (req, res) => {
 
     const reportedComments = await Comment.find({ isReported: true })
       .populate("author", "username firstName lastName")
-      .populate("post", "title")
+      .populate("postOrBlog", "title")
       .sort({ reportCount: -1, createdAt: -1 })
       .skip(skip)
       .limit(limit);
@@ -523,7 +523,7 @@ export const getPendingContent = async (req, res) => {
 
     const pendingComments = await Comment.find({ isApproved: false })
       .populate("author", "username firstName lastName")
-      .populate("post", "title")
+      .populate("postOrBlog", "title")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
