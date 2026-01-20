@@ -6,6 +6,7 @@ import {
     toggleLike,
     toggleDislike,
     deleteEventPost,
+    reportEventPost,
 } from "../controllers/eventPostController.js";
 
 const router = express.Router();
@@ -18,5 +19,6 @@ router.post("/", authenticateToken, createEventPost);
 router.delete("/:postId", authenticateToken, deleteEventPost);
 router.post("/:postId/like", authenticateToken, toggleLike);
 router.post("/:postId/dislike", authenticateToken, toggleDislike);
+router.post("/:postId/report", authenticateToken, reportEventPost);
 
 export default router;

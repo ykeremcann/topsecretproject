@@ -193,3 +193,52 @@ export const deleteEventPost = async (req, res) => {
         res.status(500).json({ message: "Silme hatası" });
     }
 };
+
+// Report event post
+export const reportEventPost = async (req, res) => {
+    try {
+        const { reason, description } = req.body;
+
+        const post = await EventPost.findById(req.params.postId);
+
+        if (!post) {
+            return res.status(404).json({
+                message: "Paylaşım bulunamadı",
+            });
+        }
+
+        // Check if already reported
+        const existingReport = post.reports.find(
+            (report) => report.userId.toString() === req.user._id.toString()
+        );
+
+        if (existingReport) {
+            return res.status(400).json({
+                message: "Bu paylaşımı zaten raporladınız",
+            });
+        }
+
+        // Add new report
+        post.reports.push({
+            userId: req.user._id,
+            reason,
+            description: description || "",
+            reportedAt: new Date(),
+        });
+
+        post.reportCount = post.reports.length;
+        post.isReported = true;
+
+        await post.save();
+
+        res.json({
+            message: "Paylaşım başarıyla raporlandı",
+            reportCount: post.reportCount,
+        });
+    } catch (error) {
+        console.error("Post raporlama hatası:", error);
+        res.status(500).json({
+            message: "Paylaşım raporlanırken hata oluştu",
+        });
+    }
+};
