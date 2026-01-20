@@ -460,33 +460,41 @@ export const getReportedContent = async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    const reportedPosts = await Post.find({ isReported: true })
-      .populate("author", "username firstName lastName")
-      .sort({ reportCount: -1, createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
+    const [
+      reportedPosts,
+      reportedComments,
+      reportedEventPosts,
+      totalReportedPosts,
+      totalReportedComments,
+      totalReportedEventPosts,
+    ] = await Promise.all([
+      Post.find({ isReported: true })
+        .populate("author", "username firstName lastName")
+        .sort({ reportCount: -1, createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      Comment.find({ isReported: true })
+        .populate("author", "username firstName lastName")
+        .populate("postOrBlog", "title")
+        .sort({ reportCount: -1, createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      EventPost.find({ isReported: true })
+        .populate("author", "username firstName lastName")
+        .populate("event", "title")
+        .sort({ reportCount: -1, createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      Post.countDocuments({ isReported: true }),
+      Comment.countDocuments({ isReported: true }),
+      EventPost.countDocuments({ isReported: true }),
+    ]);
 
-    const reportedComments = await Comment.find({ isReported: true })
-      .populate("author", "username firstName lastName")
-      .populate("postOrBlog", "title")
-      .sort({ reportCount: -1, createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
-
-    const reportedEventPosts = await EventPost.find({ isReported: true })
-      .populate("author", "username firstName lastName")
-      .populate("event", "title")
-      .sort({ reportCount: -1, createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
-
-    const totalReportedPosts = await Post.countDocuments({ isReported: true });
-    const totalReportedComments = await Comment.countDocuments({
-      isReported: true,
-    });
-    const totalReportedEventPosts = await EventPost.countDocuments({ isReported: true });
-
-    const maxTotal = Math.max(totalReportedPosts, totalReportedComments, totalReportedEventPosts);
+    const maxTotal = Math.max(
+      totalReportedPosts,
+      totalReportedComments,
+      totalReportedEventPosts
+    );
 
     res.json({
       reportedPosts,
@@ -494,7 +502,7 @@ export const getReportedContent = async (req, res) => {
       reportedEventPosts,
       pagination: {
         currentPage: page,
-        totalPages: Math.ceil(maxTotal / limit),
+        totalPages: Math.ceil(maxTotal / limit) || 1, // 0'a bölme hatasını önle
         hasNext: page * limit < maxTotal,
         hasPrev: page > 1,
       },
