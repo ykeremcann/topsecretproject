@@ -4,6 +4,7 @@ import Comment from "../models/Comment.js";
 import Disease from "../models/Disease.js";
 import Blog from "../models/Blog.js";
 import Event from "../models/Event.js";
+import EventPost from "../models/EventPost.js";
 
 // Kapsamlı Dashboard İstatistikleri
 export const getDashboardStats = async (req, res) => {
@@ -472,21 +473,29 @@ export const getReportedContent = async (req, res) => {
       .skip(skip)
       .limit(limit);
 
+    const reportedEventPosts = await EventPost.find({ isReported: true })
+      .populate("author", "username firstName lastName")
+      .populate("event", "title")
+      .sort({ reportCount: -1, createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
     const totalReportedPosts = await Post.countDocuments({ isReported: true });
     const totalReportedComments = await Comment.countDocuments({
       isReported: true,
     });
+    const totalReportedEventPosts = await EventPost.countDocuments({ isReported: true });
+
+    const maxTotal = Math.max(totalReportedPosts, totalReportedComments, totalReportedEventPosts);
 
     res.json({
       reportedPosts,
       reportedComments,
+      reportedEventPosts,
       pagination: {
         currentPage: page,
-        totalPages: Math.ceil(
-          Math.max(totalReportedPosts, totalReportedComments) / limit
-        ),
-        hasNext:
-          page * limit < Math.max(totalReportedPosts, totalReportedComments),
+        totalPages: Math.ceil(maxTotal / limit),
+        hasNext: page * limit < maxTotal,
         hasPrev: page > 1,
       },
     });
