@@ -727,20 +727,29 @@ export const getUserPosts = async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    const posts = await Post.find({
+    // İstek yapan kişi profil sahibi veya admin mi kontrol et
+    const isOwner = req.user && req.user._id.toString() === userId.toString();
+    const isAdmin = req.user && req.user.role === "admin";
+
+    // Temel sorgu
+    let query = {
       author: userId,
       isApproved: true,
-    })
+    };
+
+    // Eğer sahibi veya admin değilse, anonim postları gizle
+    if (!isOwner && !isAdmin) {
+      query.isAnonymous = { $ne: true };
+    }
+
+    const posts = await Post.find(query)
       .populate("author", "username firstName lastName profilePicture role isVerified doctorInfo")
       .populate("event", "title date")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
 
-    const total = await Post.countDocuments({
-      author: userId,
-      isApproved: true,
-    });
+    const total = await Post.countDocuments(query);
 
     // Post'ları map'leyerek anonim olanları gizle
     const postsWithAnonymous = posts.map((post) => {
